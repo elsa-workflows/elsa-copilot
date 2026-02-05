@@ -26,4 +26,9 @@
     <PackageReference Include="Elsa.Workflows.Api" Version="3.5.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\Core\Elsa.Copilot.Modules.Core.Placeholder\Elsa.Copilot.Modules.Core.Placeholder.csproj" />
+    <ProjectReference Include="..\Modules\Studio\Elsa.Copilot.Modules.Studio.Placeholder\Elsa.Copilot.Modules.Studio.Placeholder.csproj" />
+  </ItemGroup>
+
 </Project>
