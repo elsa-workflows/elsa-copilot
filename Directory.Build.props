@@ -1,0 +1,28 @@
+<Project>
+  <PropertyGroup>
+    <!-- Define paths to sibling repositories -->
+    <ElsaCoreRepoPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..', 'elsa-core'))</ElsaCoreRepoPath>
+    <ElsaStudioRepoPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..', 'elsa-studio'))</ElsaStudioRepoPath>
+    
+    <!-- Check if sibling repositories exist -->
+    <ElsaCoreExists Condition="Exists('$(ElsaCoreRepoPath)')">true</ElsaCoreExists>
+    <ElsaStudioExists Condition="Exists('$(ElsaStudioRepoPath)')">true</ElsaStudioExists>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Use local projects if available, otherwise use NuGet packages -->
+    <UseLocalElsaCore Condition="'$(ElsaCoreExists)' == 'true'">true</UseLocalElsaCore>
+    <UseLocalElsaStudio Condition="'$(ElsaStudioExists)' == 'true'">true</UseLocalElsaStudio>
+  </PropertyGroup>
+
+  <!-- Display diagnostic information -->
+  <Target Name="DisplaySiblingWorkspaceInfo" BeforeTargets="BeforeBuild">
+    <Message Text="Elsa Core Repository Path: $(ElsaCoreRepoPath)" Importance="high" Condition="'$(UseLocalElsaCore)' == 'true'" />
+    <Message Text="Elsa Core: Using local project references" Importance="high" Condition="'$(UseLocalElsaCore)' == 'true'" />
+    <Message Text="Elsa Core: Using NuGet package references" Importance="high" Condition="'$(UseLocalElsaCore)' != 'true'" />
+    
+    <Message Text="Elsa Studio Repository Path: $(ElsaStudioRepoPath)" Importance="high" Condition="'$(UseLocalElsaStudio)' == 'true'" />
+    <Message Text="Elsa Studio: Using local project references" Importance="high" Condition="'$(UseLocalElsaStudio)' == 'true'" />
+    <Message Text="Elsa Studio: Using NuGet package references" Importance="high" Condition="'$(UseLocalElsaStudio)' != 'true'" />
+  </Target>
+</Project>
