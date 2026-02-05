@@ -28,6 +28,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors();
+// NOTE: UseWorkflowsApi() and UseWorkflows() intentionally omitted for MVP
+// They require FastEndpoints configuration and cause middleware conflicts
 app.MapRazorPages();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
