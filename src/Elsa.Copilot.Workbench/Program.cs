@@ -1,46 +1,33 @@
-using Elsa.EntityFrameworkCore.Extensions;
-using Elsa.EntityFrameworkCore.Modules.Management;
-using Elsa.EntityFrameworkCore.Modules.Runtime;
+using Elsa.Copilot.Workbench.Setup;
 using Elsa.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
-var config = builder.Configuration;
-var services = builder.Services;
 
-// Database connection
-var dbConnection = config.GetConnectionString("Sqlite") ?? "Data Source=copilot.db;Cache=Shared";
+// Configure workflow persistence
+WorkflowDataStore.ConfigurePersistence(builder.Services, builder.Configuration);
 
-// Configure Elsa workflow engine with SQLite
-services.AddElsa(elsa =>
-{
-    elsa.UseWorkflowManagement(m => m.UseEntityFrameworkCore(ef => ef.UseSqlite(dbConnection)));
-    elsa.UseWorkflowRuntime(r => r.UseEntityFrameworkCore(ef => ef.UseSqlite(dbConnection)));
-    elsa.UseHttp();
-    elsa.UseWorkflowsApi();
-});
+// Configure workflow HTTP activities and API
+WorkflowApiSetup.AddHttpAndApi(builder.Services, builder.Configuration);
 
-// Add CORS for API access
-services.AddCors(c => c.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
-
-// Add Blazor Server
-services.AddRazorPages();
-services.AddServerSideBlazor();
+// Configure Studio UI
+StudioUiSetup.AddStudioModules(builder.Services, builder.Configuration);
 
 var app = builder.Build();
 
-// Configure pipeline
-if (!app.Environment.IsDevelopment())
+// Development vs Production error handling
+if (app.Environment.IsDevelopment())
+    app.UseDeveloperExceptionPage();
+else
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
+// Request pipeline
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors();
-app.UseWorkflowsApi();
-app.UseWorkflows();
 app.MapRazorPages();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
