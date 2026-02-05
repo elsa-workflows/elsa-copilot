@@ -1,9 +1,15 @@
+using Elsa.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// TODO: Task 15 will add Elsa Server and Studio configuration here
+// Add Elsa workflow engine with basic configuration
+builder.Services.AddElsa(elsa =>
+{
+    elsa.UseWorkflowManagement();
+});
 
 var app = builder.Build();
 
-app.MapGet("/", () => "Elsa Copilot Workbench");
+app.MapGet("/", () => "Elsa Copilot Workbench - Elsa Integrated");
 
 app.Run();
