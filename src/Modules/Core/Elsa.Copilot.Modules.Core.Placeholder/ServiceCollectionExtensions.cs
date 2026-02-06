@@ -24,17 +24,9 @@ public static class ServiceCollectionExtensions
         services.Configure<AiProviderOptions>(configuration.GetSection("AiProviders"));
 
         // Register core services
-        services.AddSingleton<IAiProviderRegistry, AiProviderRegistry>();
-        services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
-
-        // Register GitHub Copilot provider
-        services.AddTransient<GitHubCopilotClient>();
-        services.AddSingleton<IAiProvider, GitHubCopilotProvider>();
-
-        // Register the provider with the registry
-        services.AddSingleton(sp =>
+        services.AddSingleton<IAiProviderRegistry>(sp =>
         {
-            var registry = sp.GetRequiredService<IAiProviderRegistry>();
+            var registry = new AiProviderRegistry();
             var providers = sp.GetServices<IAiProvider>();
             
             foreach (var provider in providers)
@@ -44,6 +36,12 @@ public static class ServiceCollectionExtensions
 
             return registry;
         });
+        
+        services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
+
+        // Register GitHub Copilot provider
+        services.AddTransient<GitHubCopilotClient>();
+        services.AddSingleton<IAiProvider, GitHubCopilotProvider>();
 
         return services;
     }
