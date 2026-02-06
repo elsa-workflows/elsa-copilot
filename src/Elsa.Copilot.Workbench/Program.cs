@@ -10,7 +10,7 @@ ElsaServerSetup.AddElsaServer(builder.Services, builder.Configuration);
 ElsaStudioSetup.AddElsaStudio(builder.Services, builder.Configuration);
 
 // Register custom modules
-ModuleRegistration.RegisterModules(builder.Services);
+ModuleRegistration.RegisterModules(builder.Services, builder.Configuration);
 
 var app = builder.Build();
 
