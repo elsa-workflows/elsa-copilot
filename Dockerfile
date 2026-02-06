@@ -36,8 +36,9 @@ RUN groupadd -r elsaapp && useradd -r -g elsaapp elsaapp
 # Copy published application
 COPY --from=publish /app/publish .
 
-# Create directory for SQLite database with proper permissions
-RUN mkdir -p /app/data && chown -R elsaapp:elsaapp /app/data
+# Create directories for SQLite database and locks with proper permissions
+RUN mkdir -p /app/data /app/App_Data/locks && \
+    chown -R elsaapp:elsaapp /app/data /app/App_Data
 
 # Set environment variables for production
 ENV ASPNETCORE_ENVIRONMENT=Production \
@@ -51,9 +52,9 @@ USER elsaapp
 # Expose port
 EXPOSE 8080
 
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+# Health check endpoint (basic check - adjust URL as needed)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
 
 # Set the entrypoint
 ENTRYPOINT ["dotnet", "Elsa.Copilot.Workbench.dll"]

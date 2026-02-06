@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  elsa-copilot-workbench:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: elsa-copilot-workbench:latest
+    container_name: elsa-copilot-workbench
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persist SQLite database
+      - ./data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      # Override configuration via environment variables
+      - ConnectionStrings__Sqlite=Data Source=/app/data/copilot.db;Cache=Shared
+      - Elsa__Identity__SigningKey=${ELSA_SIGNING_KEY:-your-secret-signing-key-here-minimum-256-bits}
+      - Elsa__Server__BaseUrl=http://localhost:8080
+      - Backend__Url=http://localhost:8080/elsa/api
+      - Http__BaseUrl=http://localhost:8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Example: Development configuration with environment override
+  elsa-copilot-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: elsa-copilot-workbench:dev
+    container_name: elsa-copilot-dev
+    ports:
+      - "5000:8080"
+    volumes:
+      - ./data-dev:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__Sqlite=Data Source=/app/data/copilot-dev.db;Cache=Shared
+      - Elsa__Identity__SigningKey=development-signing-key-minimum-256-bits-for-jwt-tokens
+      - Logging__LogLevel__Default=Debug
+      - Logging__LogLevel__Elsa=Debug
+    restart: unless-stopped
+    profiles:
+      - dev
+
+volumes:
+  data:
+  data-dev:
