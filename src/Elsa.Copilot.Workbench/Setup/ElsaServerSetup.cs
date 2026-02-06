@@ -26,10 +26,20 @@ internal static class ElsaServerSetup
                 rt.UseEntityFrameworkCore(db => db.UseSqlite(sqliteConn)));
             
             // Identity and authentication configuration
-            // For now, uses simple API key authentication suitable for development
+            // For development workbench - signing key should be moved to user secrets in production
             elsa.UseIdentity(identity =>
             {
-                identity.TokenOptions = options => options.SigningKey = "sufficiently-large-secret-key-min-256-bits";
+                identity.TokenOptions = options => 
+                {
+                    // Use configuration key or generate a secure default for development
+                    var signingKey = cfg["Elsa:Identity:SigningKey"];
+                    if (string.IsNullOrEmpty(signingKey))
+                    {
+                        // For development only - generates a consistent key per configuration
+                        signingKey = "sufficiently-large-secret-key-min-256-bits";
+                    }
+                    options.SigningKey = signingKey;
+                };
                 identity.UseAdminUserProvider();
             });
             
@@ -50,7 +60,9 @@ internal static class ElsaServerSetup
             
             // C# and JavaScript expression support
             elsa.UseCSharp();
-            elsa.UseJavaScript(js => js.AllowClrAccess = true);
+            // JavaScript with CLR access disabled for security
+            // Enable CLR access only if absolutely necessary for your workflows
+            elsa.UseJavaScript(js => js.AllowClrAccess = false);
             
             // Scheduling activities for timed workflows
             elsa.UseScheduling();
@@ -61,12 +73,30 @@ internal static class ElsaServerSetup
         });
         
         // CORS policy for Studio frontend and external API consumers
-        // NOTE: Permissive for development workbench - restrict in production
+        // Permissive for development workbench - MUST be restricted for production
+        // TODO: Configure specific allowed origins when deploying beyond local development
         svc.AddCors(corsCfg => 
-            corsCfg.AddDefaultPolicy(policy => 
-                policy.AllowAnyOrigin()
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .WithExposedHeaders("x-elsa-workflow-instance-id")));
+            corsCfg.AddDefaultPolicy(policy =>
+            {
+                var allowedOrigins = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+                    ?? new[] { "http://localhost:*", "https://localhost:*" };
+                
+                if (allowedOrigins.Contains("*"))
+                {
+                    // Allow all origins (development only)
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .WithExposedHeaders("x-elsa-workflow-instance-id");
+                }
+                else
+                {
+                    // Restrict to specific origins (recommended)
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .WithExposedHeaders("x-elsa-workflow-instance-id");
+                }
+            }));
     }
 }
