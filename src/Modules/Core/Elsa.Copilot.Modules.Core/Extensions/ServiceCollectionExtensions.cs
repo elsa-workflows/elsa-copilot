@@ -5,6 +5,7 @@ using Elsa.Copilot.Modules.Core.Registry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Elsa.Copilot.Modules.Core.Extensions;
 
@@ -42,15 +43,16 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromMinutes(5);
         });
 
-        // Register provider
-        services.AddSingleton<GitHubCopilotProvider>();
-        
-        // Register with registry
+        // Register provider and add to registry
         services.AddSingleton(sp =>
         {
-            var provider = sp.GetRequiredService<GitHubCopilotProvider>();
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var options = sp.GetRequiredService<IOptions<GitHubCopilotOptions>>();
+            var provider = new GitHubCopilotProvider(httpClientFactory, options);
+            
             var registry = sp.GetRequiredService<IAiProviderRegistry>();
             registry.Register(provider);
+            
             return provider;
         });
 

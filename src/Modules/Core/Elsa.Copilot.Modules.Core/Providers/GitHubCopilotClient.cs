@@ -74,7 +74,7 @@ public class GitHubCopilotClient : IAiClient
                 continue;
             }
 
-            var data = line.Substring(6).Trim();
+            var data = line[6..].Trim();
             
             if (data == "[DONE]")
             {
