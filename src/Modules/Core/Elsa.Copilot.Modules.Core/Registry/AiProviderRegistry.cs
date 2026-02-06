@@ -8,12 +8,12 @@ namespace Elsa.Copilot.Modules.Core.Registry;
 public class AiProviderRegistry : IAiProviderRegistry
 {
     private readonly Dictionary<string, IAiProvider> _providers = new(StringComparer.OrdinalIgnoreCase);
-    private readonly object _lock = new();
+    private readonly object _syncLock = new();
 
     /// <inheritdoc />
     public void Register(IAiProvider provider)
     {
-        lock (_lock)
+        lock (_syncLock)
         {
             _providers[provider.Name] = provider;
         }
@@ -22,7 +22,7 @@ public class AiProviderRegistry : IAiProviderRegistry
     /// <inheritdoc />
     public IAiProvider? GetProvider(string name)
     {
-        lock (_lock)
+        lock (_syncLock)
         {
             return _providers.TryGetValue(name, out var provider) ? provider : null;
         }
@@ -31,7 +31,7 @@ public class AiProviderRegistry : IAiProviderRegistry
     /// <inheritdoc />
     public IEnumerable<IAiProvider> GetAllProviders()
     {
-        lock (_lock)
+        lock (_syncLock)
         {
             return _providers.Values.ToList();
         }

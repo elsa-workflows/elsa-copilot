@@ -114,7 +114,7 @@ public class GitHubCopilotClient : IAiClient
     {
         if (!responseData.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
         {
-            throw new InvalidOperationException("The API response did not contain any choices.");
+            throw new InvalidOperationException("The GitHub Copilot API response did not contain any choices.");
         }
 
         var choice = choices[0];
@@ -144,7 +144,7 @@ public class GitHubCopilotClient : IAiClient
     {
         if (!chunk.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
         {
-            throw new InvalidOperationException("The API stream chunk did not contain any choices.");
+            throw new InvalidOperationException("The GitHub Copilot API stream chunk did not contain any choices.");
         }
 
         var choice = choices[0];
