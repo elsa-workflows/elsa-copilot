@@ -1,0 +1,79 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+LICENSE
+functional-requirements.md
+DEVELOPMENT.md
+
+# Build output
+**/bin/
+**/obj/
+**/out/
+**/publish/
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# Test results
+**/TestResults/
+**/*.trx
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/
+*.nuget.props
+*.nuget.targets
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Environment files
+.env
+*.env
+
+# Logs
+*.log
+**/logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Node modules (if any)
+node_modules/
+
+# Coverage results
+coverage*/
+*.coverage
+*.coveragexml
+
+# IDE
+*.swp
+*.swo
+*~.nib
+
+# Docker files (don't copy into image)
+Dockerfile*
+docker-compose*
+.dockerignore
