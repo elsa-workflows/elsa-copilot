@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{EC44
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{D6D160DD-AE2A-0C32-F31B-9BD72717AAF2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elsa.Copilot.Modules.Core.Placeholder", "src\Modules\Core\Elsa.Copilot.Modules.Core.Placeholder\Elsa.Copilot.Modules.Core.Placeholder.csproj", "{127E1333-AAE0-4FD7-A29A-7A2895F7B8FE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elsa.Copilot.Modules.Core", "src\Modules\Core\Elsa.Copilot.Modules.Core\Elsa.Copilot.Modules.Core.csproj", "{127E1333-AAE0-4FD7-A29A-7A2895F7B8FE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Studio", "Studio", "{3C1DC29A-5B4B-BEAD-1B53-316270E7D5C6}"
 EndProject

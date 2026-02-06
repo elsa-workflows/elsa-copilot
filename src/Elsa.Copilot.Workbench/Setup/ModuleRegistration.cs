@@ -1,4 +1,4 @@
-using Elsa.Copilot.Modules.Core.Placeholder;
+using Elsa.Copilot.Modules.Core.Extensions;
 using Elsa.Copilot.Modules.Studio.Placeholder;
 
 namespace Elsa.Copilot.Workbench.Setup;
@@ -10,15 +10,16 @@ namespace Elsa.Copilot.Workbench.Setup;
 /// </summary>
 internal static class ModuleRegistration
 {
-    internal static void RegisterModules(IServiceCollection svc)
+    internal static void RegisterModules(IServiceCollection services, IConfiguration configuration)
     {
         // Register Core module (server-side)
-        // Currently a placeholder - will contain activities, services, and AI integrations
-        svc.AddSingleton<CoreModulePlaceholder>();
+        // Register AI provider abstraction layer
+        services.AddAiProviders(configuration);
+        services.AddGitHubCopilotProvider(configuration);
         
         // Register Studio module (UI-side)
         // Currently a placeholder - will contain Blazor components and UI extensions
-        svc.AddSingleton<StudioModulePlaceholder>();
+        services.AddSingleton<StudioModulePlaceholder>();
         
         // Future modules can be registered here as the architecture evolves
         // Example:
