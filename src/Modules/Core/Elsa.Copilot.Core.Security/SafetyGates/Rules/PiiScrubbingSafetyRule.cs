@@ -5,13 +5,24 @@ namespace Elsa.Copilot.Core.Security.SafetyGates.Rules;
 
 /// <summary>
 /// Safety rule that scrubs potential PII (Personally Identifiable Information) from data.
-/// This is a placeholder implementation that demonstrates the pattern.
-/// Production implementations should use more sophisticated PII detection.
+/// 
+/// IMPORTANT: This is a placeholder implementation that demonstrates the pattern.
+/// The regex patterns used here are intentionally simplistic for demonstration purposes.
+/// 
+/// Production implementations should:
+/// - Use dedicated PII detection libraries (e.g., Microsoft Presidio, AWS Comprehend)
+/// - Implement comprehensive patterns that handle format variations:
+///   * Emails: RFC-compliant addresses with international characters
+///   * Phone numbers: International formats, parentheses, extensions (e.g., (123) 456-7890, +1-123-456-7890)
+///   * SSNs: Multiple formats (dashed, non-dashed)
+/// - Consider context-aware detection to reduce false positives
+/// - Support additional PII types (credit cards, addresses, names, etc.)
 /// </summary>
 public class PiiScrubbingSafetyRule : AiSafetyRuleBase
 {
     // Simple regex patterns for common PII types (placeholder - use proper PII detection in production)
-    private static readonly Regex EmailPattern = new(@"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", RegexOptions.Compiled);
+    // These patterns will have false positives and miss many valid formats
+    private static readonly Regex EmailPattern = new(@"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", RegexOptions.Compiled);
     private static readonly Regex PhonePattern = new(@"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", RegexOptions.Compiled);
     private static readonly Regex SsnPattern = new(@"\b\d{3}-\d{2}-\d{4}\b", RegexOptions.Compiled);
 

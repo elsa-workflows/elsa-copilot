@@ -44,7 +44,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers a custom authorization handler.
+    /// Registers a custom authorization handler, replacing any existing handler.
     /// </summary>
     /// <typeparam name="THandler">The type of the authorization handler to register.</typeparam>
     /// <param name="services">The service collection.</param>
@@ -52,7 +52,14 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddAiAuthorizationHandler<THandler>(this IServiceCollection services)
         where THandler : class, IAiAuthorizationHandler
     {
-        // Replace the default handler with the custom one
+        // Remove existing handler registration if present
+        var existingDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IAiAuthorizationHandler));
+        if (existingDescriptor != null)
+        {
+            services.Remove(existingDescriptor);
+        }
+        
+        // Add the custom handler
         services.AddScoped<IAiAuthorizationHandler, THandler>();
         return services;
     }
