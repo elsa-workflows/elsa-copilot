@@ -12,12 +12,20 @@ docker build -t elsa-copilot-workbench .
 
 ### Running with Docker
 
+**Important**: You must provide a signing key for Elsa Identity. Generate a secure random key (minimum 256 bits):
+
 ```bash
+# Generate a secure signing key
+export ELSA_SIGNING_KEY=$(openssl rand -base64 32)
+
+# Or set your own key
+export ELSA_SIGNING_KEY="your-secure-random-key-minimum-256-bits"
+
 docker run -d \
   --name elsa-copilot \
   -p 8080:8080 \
   -v $(pwd)/data:/app/data \
-  -e Elsa__Identity__SigningKey="your-secret-signing-key-here-minimum-256-bits" \
+  -e Elsa__Identity__SigningKey="${ELSA_SIGNING_KEY}" \
   elsa-copilot-workbench
 ```
 
@@ -25,8 +33,9 @@ Access the application at: http://localhost:8080
 
 ### Running with Docker Compose
 
-Production mode:
+Production mode (requires ELSA_SIGNING_KEY environment variable):
 ```bash
+export ELSA_SIGNING_KEY=$(openssl rand -base64 32)
 docker-compose up -d
 ```
 
@@ -141,7 +150,7 @@ chmod 777 ./data
 ```
 
 ### Health check failing
-The container includes a health check at `/health`. Verify it's accessible:
+The container includes a health check at the root path `/`. Verify it's accessible:
 ```bash
 docker inspect --format='{{json .State.Health}}' elsa-copilot
 ```

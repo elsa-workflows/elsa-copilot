@@ -17,13 +17,14 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       # Override configuration via environment variables
       - ConnectionStrings__Sqlite=Data Source=/app/data/copilot.db;Cache=Shared
-      - Elsa__Identity__SigningKey=${ELSA_SIGNING_KEY:-your-secret-signing-key-here-minimum-256-bits}
+      # REQUIRED: Set ELSA_SIGNING_KEY environment variable before starting
+      - Elsa__Identity__SigningKey=${ELSA_SIGNING_KEY}
       - Elsa__Server__BaseUrl=http://localhost:8080
       - Backend__Url=http://localhost:8080/elsa/api
       - Http__BaseUrl=http://localhost:8080
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1"]
       interval: 30s
       timeout: 3s
       retries: 3
