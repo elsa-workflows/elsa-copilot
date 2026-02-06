@@ -83,19 +83,29 @@ public class GitHubCopilotClient : IAiClient, IAsyncDisposable
         var prompt = BuildPrompt(request.Messages);
         var messageOptions = new MessageOptions { Prompt = prompt };
 
-        var responseContent = string.Empty;
+        var responseContent = new System.Text.StringBuilder();
         var isComplete = false;
+        var syncLock = new object();
+        var responseId = Guid.NewGuid().ToString();
+        var tcs = new TaskCompletionSource<bool>();
 
         // Subscribe to events
         session.On(evt =>
         {
             if (evt is AssistantMessageDeltaEvent delta)
             {
-                responseContent += delta.Data.DeltaContent;
+                lock (syncLock)
+                {
+                    responseContent.Append(delta.Data.DeltaContent);
+                }
             }
             else if (evt is SessionIdleEvent)
             {
-                isComplete = true;
+                lock (syncLock)
+                {
+                    isComplete = true;
+                }
+                tcs.TrySetResult(true);
             }
         });
 
@@ -104,37 +114,58 @@ public class GitHubCopilotClient : IAiClient, IAsyncDisposable
 
         // Yield responses as they come in
         var lastYieldedLength = 0;
-        while (!isComplete && !cancellationToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
-            if (responseContent.Length > lastYieldedLength)
+            string currentContent;
+            bool completed;
+            
+            lock (syncLock)
+            {
+                currentContent = responseContent.ToString();
+                completed = isComplete;
+            }
+            
+            if (currentContent.Length > lastYieldedLength)
             {
                 yield return new AiResponse
                 {
                     Message = new AiMessage
                     {
                         Role = "assistant",
-                        Content = responseContent
+                        Content = currentContent
                     },
                     Model = _options.Model,
-                    Id = Guid.NewGuid().ToString()
+                    Id = responseId
                 };
-                lastYieldedLength = responseContent.Length;
+                lastYieldedLength = currentContent.Length;
             }
-            await Task.Delay(10, cancellationToken);
+            
+            if (completed)
+            {
+                break;
+            }
+            
+            await Task.Delay(50, cancellationToken);
         }
 
-        // Yield the final complete response
-        if (responseContent.Length > lastYieldedLength)
+        // Yield the final complete response if there's remaining content
+        string finalContent;
+        lock (syncLock)
+        {
+            finalContent = responseContent.ToString();
+        }
+        
+        if (finalContent.Length > lastYieldedLength)
         {
             yield return new AiResponse
             {
                 Message = new AiMessage
                 {
                     Role = "assistant",
-                    Content = responseContent
+                    Content = finalContent
                 },
                 Model = _options.Model,
-                Id = Guid.NewGuid().ToString()
+                Id = responseId
             };
         }
     }
