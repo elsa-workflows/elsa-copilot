@@ -1,3 +1,4 @@
+using Elsa.Copilot.Core.Security.Extensions;
 using Elsa.Copilot.Modules.Core.Placeholder;
 using Elsa.Copilot.Modules.Studio.Placeholder;
 
@@ -19,6 +20,14 @@ internal static class ModuleRegistration
         // Register Studio module (UI-side)
         // Currently a placeholder - will contain Blazor components and UI extensions
         svc.AddSingleton<StudioModulePlaceholder>();
+        
+        // Register AI Security & Tenancy Guardrails (Feature 24)
+        // This provides foundational security layer for AI operations including:
+        // - Tenancy authorization via IAiAuthorizationHandler
+        // - AI permission scopes (ai:read, ai:propose, ai:diagnose, ai:admin)
+        // - Safety gate for tool execution with input/output validation
+        // - PII scrubbing and structural validation rules
+        svc.AddAiSecurityGuardrails();
         
         // Future modules can be registered here as the architecture evolves
         // Example:

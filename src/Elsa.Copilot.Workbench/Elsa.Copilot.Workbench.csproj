@@ -32,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Modules\Core\Elsa.Copilot.Modules.Core.Placeholder\Elsa.Copilot.Modules.Core.Placeholder.csproj" />
     <ProjectReference Include="..\Modules\Studio\Elsa.Copilot.Modules.Studio.Placeholder\Elsa.Copilot.Modules.Studio.Placeholder.csproj" />
+    <ProjectReference Include="..\Modules\Core\Elsa.Copilot.Core.Security\Elsa.Copilot.Core.Security.csproj" />
   </ItemGroup>
 
 </Project>
