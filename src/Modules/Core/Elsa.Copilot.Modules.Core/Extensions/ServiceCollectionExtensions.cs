@@ -44,6 +44,9 @@ public static class ServiceCollectionExtensions
         });
 
         // Register provider and add to registry
+        // Note: The provider is registered with the registry during construction to ensure
+        // it's immediately available when the registry is first accessed. This pattern
+        // is acceptable for simple registrations where ordering doesn't matter.
         services.AddSingleton(sp =>
         {
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();

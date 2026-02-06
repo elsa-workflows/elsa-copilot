@@ -112,7 +112,12 @@ public class GitHubCopilotClient : IAiClient
 
     private AiResponse ParseResponse(JsonElement responseData)
     {
-        var choice = responseData.GetProperty("choices")[0];
+        if (!responseData.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
+        {
+            throw new InvalidOperationException("The API response did not contain any choices.");
+        }
+
+        var choice = choices[0];
         var message = choice.GetProperty("message");
         var usage = responseData.TryGetProperty("usage", out var usageElement) ? usageElement : (JsonElement?)null;
 
@@ -137,7 +142,12 @@ public class GitHubCopilotClient : IAiClient
 
     private AiResponse ParseStreamChunk(JsonElement chunk)
     {
-        var choice = chunk.GetProperty("choices")[0];
+        if (!chunk.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
+        {
+            throw new InvalidOperationException("The API stream chunk did not contain any choices.");
+        }
+
+        var choice = choices[0];
         var delta = choice.GetProperty("delta");
         
         var content = delta.TryGetProperty("content", out var contentElement) 
