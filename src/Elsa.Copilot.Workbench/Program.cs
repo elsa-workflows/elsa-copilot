@@ -3,14 +3,14 @@ using Elsa.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure workflow persistence
-WorkflowDataStore.ConfigurePersistence(builder.Services, builder.Configuration);
+// Configure Elsa Server (workflow engine and API)
+ElsaServerSetup.AddElsaServer(builder.Services, builder.Configuration);
 
-// Configure workflow HTTP activities and API
-WorkflowApiSetup.AddHttpAndApi(builder.Services, builder.Configuration);
+// Configure Elsa Studio (Blazor Server UI)
+ElsaStudioSetup.AddElsaStudio(builder.Services, builder.Configuration);
 
-// Configure Studio UI
-StudioUiSetup.AddStudioModules(builder.Services, builder.Configuration);
+// Register custom modules
+ModuleRegistration.RegisterModules(builder.Services);
 
 var app = builder.Build();
 
@@ -23,13 +23,23 @@ else
     app.UseHsts();
 }
 
-// Request pipeline
+// Request pipeline - order matters!
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+// Authentication and Authorization (even if not fully configured, middleware should be present)
+app.UseAuthentication();
+app.UseAuthorization();
+
+// CORS for API access
 app.UseCors();
-// NOTE: UseWorkflowsApi() and UseWorkflows() intentionally omitted for MVP
-// They require FastEndpoints configuration and cause middleware conflicts
+
+// Elsa Server middleware - exposes workflow management and execution APIs
+app.UseWorkflowsApi();
+app.UseWorkflows();
+
+// Blazor Server endpoints for Studio UI
 app.MapRazorPages();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");

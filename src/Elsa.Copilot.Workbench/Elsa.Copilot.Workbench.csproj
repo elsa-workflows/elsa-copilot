@@ -9,11 +9,15 @@
   <ItemGroup>
     <!-- Elsa Server Dependencies -->
     <PackageReference Include="Elsa" Version="3.5.3" />
+    <PackageReference Include="Elsa.CSharp" Version="3.5.3" />
     <PackageReference Include="Elsa.EntityFrameworkCore" Version="3.5.3" />
     <PackageReference Include="Elsa.EntityFrameworkCore.Sqlite" Version="3.5.3" />
     <PackageReference Include="Elsa.Hosting.Management" Version="3.5.3" />
     <PackageReference Include="Elsa.Http" Version="3.5.3" />
     <PackageReference Include="Elsa.Identity" Version="3.5.3" />
+    <PackageReference Include="Elsa.JavaScript" Version="3.5.3" />
+    <PackageReference Include="Elsa.Scheduling" Version="3.5.3" />
+    <PackageReference Include="Elsa.Workflows.Api" Version="3.5.3" />
     
     <!-- Elsa Studio (Blazor Server) Dependencies -->
     <PackageReference Include="Elsa.Studio" Version="3.5.3" />
@@ -23,7 +27,6 @@
     <PackageReference Include="Elsa.Studio.Login.BlazorServer" Version="3.5.3" />
     <PackageReference Include="Elsa.Studio.Shell" Version="3.5.3" />
     <PackageReference Include="Elsa.Studio.Workflows" Version="3.5.3" />
-    <PackageReference Include="Elsa.Workflows.Api" Version="3.5.3" />
   </ItemGroup>
 
   <ItemGroup>
