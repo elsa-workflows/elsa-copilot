@@ -141,7 +141,7 @@ dotnet build
 ```bash
 dotnet run --project src/Elsa.Copilot.Workbench
 # Result: Application starts successfully
-# - Database migrations applied automatically
+# - Database file created automatically on first run
 # - Elsa Server endpoints registered
 # - Elsa Studio UI accessible
 ```

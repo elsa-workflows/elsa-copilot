@@ -119,14 +119,21 @@ dotnet build src/Elsa.Copilot.Workbench
 cd src/Elsa.Copilot.Workbench
 dotnet run
 
-# Run with specific environment
-dotnet run --environment Production
+# Run with specific environment (Unix/macOS)
+ASPNETCORE_ENVIRONMENT=Production dotnet run
+
+# Run with specific environment (Windows PowerShell)
+$env:ASPNETCORE_ENVIRONMENT="Production"; dotnet run
 
 # Run with custom URLs
 dotnet run --urls "http://localhost:5000;https://localhost:5001"
 ```
 
-The application will be available at:
+By default, the application will listen on the URLs configured in `Properties/launchSettings.json`
+(for example, `http://localhost:5018` and `https://localhost:7019`). Check the console output or
+your launch profile for the exact URLs when the app starts.
+
+If you run with the custom URLs example above, the application will be available at:
 - HTTP: `http://localhost:5000`
 - HTTPS: `https://localhost:5001`
 
@@ -139,7 +146,7 @@ The application will be available at:
 
 #### VS Code
 1. Open the workspace root
-2. Use the provided launch configuration (`.vscode/launch.json`)
+2. In the Run and Debug view, create a new launch configuration (`launch.json`) for a .NET application (e.g., ".NET Core Launch (web)")
 3. Press F5 to start debugging
 
 #### Rider
@@ -153,7 +160,7 @@ The application uses SQLite for persistence by default:
 - **Development**: `copilot-dev.db` (configured in `appsettings.Development.json`)
 - **Production**: `copilot.db` (configured in `appsettings.json`)
 
-Database migrations are applied automatically on startup.
+The database file is created automatically on first run. Entity Framework Core will apply migrations as needed during application startup.
 
 To reset the database:
 ```bash
@@ -175,13 +182,13 @@ Elsa Copilot uses a modular architecture where Copilot features are delivered as
    - Server-side logic (activities, services, API endpoints)
    - GitHub Copilot SDK integration
    - Function calling implementations
-   - Placed in `src/Modules/Core/Elsa.Copilot.Modules.{FeatureName}/`
+   - Placed in `src/Modules/Core/Elsa.Copilot.Modules.Core.{FeatureName}/`
 
 2. **Studio Modules** (`src/Modules/Studio/`)
    - UI components (Blazor components)
    - Chat sidebar and interface elements
    - Proposal review UI
-   - Placed in `src/Modules/Studio/Elsa.Copilot.Modules.{FeatureName}/`
+   - Placed in `src/Modules/Studio/Elsa.Copilot.Modules.Studio.{FeatureName}/`
 
 ### Creating a New Module
 
@@ -190,8 +197,8 @@ Elsa Copilot uses a modular architecture where Copilot features are delivered as
 **For a Core (Server) module:**
 ```bash
 cd src/Modules/Core
-dotnet new classlib -n Elsa.Copilot.Modules.MyFeature
-cd Elsa.Copilot.Modules.MyFeature
+dotnet new classlib -n Elsa.Copilot.Modules.Core.MyFeature
+cd Elsa.Copilot.Modules.Core.MyFeature
 dotnet add package Elsa
 ```
 
@@ -208,9 +215,9 @@ dotnet add package Elsa.Studio.Core
 
 ```bash
 cd /path/to/elsa-copilot
-dotnet sln add src/Modules/Core/Elsa.Copilot.Modules.MyFeature
+dotnet sln add src/Modules/Core/Elsa.Copilot.Modules.Core.MyFeature/Elsa.Copilot.Modules.Core.MyFeature.csproj
 # or
-dotnet sln add src/Modules/Studio/Elsa.Copilot.Modules.Studio.MyFeature
+dotnet sln add src/Modules/Studio/Elsa.Copilot.Modules.Studio.MyFeature/Elsa.Copilot.Modules.Studio.MyFeature.csproj
 ```
 
 #### 3. Reference in Workbench
@@ -219,9 +226,9 @@ Edit `src/Elsa.Copilot.Workbench/Elsa.Copilot.Workbench.csproj`:
 
 ```xml
 <ItemGroup>
-  <ProjectReference Include="..\Modules\Core\Elsa.Copilot.Modules.MyFeature\..." />
+  <ProjectReference Include="..\Modules\Core\Elsa.Copilot.Modules.Core.MyFeature\Elsa.Copilot.Modules.Core.MyFeature.csproj" />
   <!-- or -->
-  <ProjectReference Include="..\Modules\Studio\Elsa.Copilot.Modules.Studio.MyFeature\..." />
+  <ProjectReference Include="..\Modules\Studio\Elsa.Copilot.Modules.Studio.MyFeature\Elsa.Copilot.Modules.Studio.MyFeature.csproj" />
 </ItemGroup>
 ```
 
@@ -232,10 +239,14 @@ Edit `src/Elsa.Copilot.Workbench/Setup/ModuleRegistration.cs`:
 ```csharp
 internal static void RegisterModules(IServiceCollection svc)
 {
-    // Register your module's services
-    svc.AddMyFeatureModule(); // Core module
-    // or
-    svc.AddMyStudioFeature(); // Studio module
+    // Register Core module (server-side)
+    svc.AddSingleton<CoreModulePlaceholder>();
+    
+    // Register Studio module (UI-side)
+    svc.AddSingleton<StudioModulePlaceholder>();
+    
+    // Register your new module's services as needed
+    // Example: svc.AddSingleton<MyChatFeature>();
 }
 ```
 
@@ -256,7 +267,7 @@ internal static void RegisterModules(IServiceCollection svc)
 ### Example Module Structure
 
 ```text
-src/Modules/Core/Elsa.Copilot.Modules.Chat/
+src/Modules/Core/Elsa.Copilot.Modules.Core.Chat/
 ├── Activities/                  # Custom activities
 ├── Services/                    # Business logic services
 ├── Endpoints/                   # API endpoints
