@@ -72,6 +72,9 @@ internal static class ElsaServerSetup
             elsa.AddWorkflowsFrom<Program>();
         });
         
+        // Add Copilot Chat module (after AddElsa)
+        svc.AddCopilotChat();
+        
         // CORS policy for Studio frontend and external API consumers
         // Permissive for development workbench - MUST be restricted for production
         // TODO: Configure specific allowed origins when deploying beyond local development

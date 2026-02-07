@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Elsa Core Dependencies -->
+    <PackageReference Include="Elsa" Version="3.5.3" />
+    <PackageReference Include="Elsa.Workflows.Api" Version="3.5.3" />
+    <PackageReference Include="Elsa.Workflows.Management" Version="3.5.3" />
+    <PackageReference Include="Elsa.Workflows.Runtime" Version="3.5.3" />
+    
+    <!-- AI Dependencies -->
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.0.1-preview.1.24570.5" />
+  </ItemGroup>
+
+</Project>
