@@ -84,6 +84,13 @@ For details, see [DEVELOPMENT.md](DEVELOPMENT.md).
 ```text
 src/
 ├── Elsa.Copilot.Workbench/          # Development host (Server + Studio)
+│   ├── Program.cs                    # Application entry point
+│   ├── Setup/                        # Configuration modules
+│   │   ├── ElsaServerSetup.cs       # Elsa Server DI configuration
+│   │   ├── ElsaStudioSetup.cs       # Elsa Studio DI configuration
+│   │   └── ModuleRegistration.cs    # Custom module registration
+│   ├── Pages/                        # Blazor Server pages
+│   └── appsettings.json             # Application configuration
 └── Modules/
     ├── Core/                         # Elsa Server modules
     │   └── Elsa.Copilot.Modules.Core.Placeholder/
@@ -93,11 +100,193 @@ src/
 
 ---
 
+## Development Workflow
+
+### Building
+
+```bash
+# Build the entire solution
+dotnet build
+
+# Build the workbench only
+dotnet build src/Elsa.Copilot.Workbench
+```
+
+### Running
+
+```bash
+# Run with default settings (uses Development environment)
+cd src/Elsa.Copilot.Workbench
+dotnet run
+
+# Run with specific environment (Unix/macOS)
+ASPNETCORE_ENVIRONMENT=Production dotnet run
+
+# Run with specific environment (Windows PowerShell)
+$env:ASPNETCORE_ENVIRONMENT="Production"; dotnet run
+
+# Run with custom URLs
+dotnet run --urls "http://localhost:5000;https://localhost:5001"
+```
+
+By default, the application will listen on the URLs configured in `Properties/launchSettings.json`
+(for example, `http://localhost:5018` and `https://localhost:7019`). Check the console output or
+your launch profile for the exact URLs when the app starts.
+
+If you run with the custom URLs example above, the application will be available at:
+- HTTP: `http://localhost:5000`
+- HTTPS: `https://localhost:5001`
+
+### Debugging
+
+#### Visual Studio
+1. Open `Elsa.Copilot.Workbench.sln`
+2. Set `Elsa.Copilot.Workbench` as the startup project
+3. Press F5 to start debugging
+
+#### VS Code
+1. Open the workspace root
+2. In the Run and Debug view, create a new launch configuration (`launch.json`) for a .NET application (e.g., ".NET Core Launch (web)")
+3. Press F5 to start debugging
+
+#### Rider
+1. Open `Elsa.Copilot.Workbench.sln`
+2. Select the `Elsa.Copilot.Workbench` run configuration
+3. Click the Debug button or press Shift+F9
+
+### Database
+
+The application uses SQLite for persistence by default:
+- **Development**: `copilot-dev.db` (configured in `appsettings.Development.json`)
+- **Production**: `copilot.db` (configured in `appsettings.json`)
+
+The database file is created automatically on first run. Entity Framework Core will apply migrations as needed during application startup.
+
+To reset the database:
+```bash
+rm src/Elsa.Copilot.Workbench/copilot*.db*
+dotnet run
+```
+
+---
+
+## Adding Copilot Modules
+
+### Overview
+
+Elsa Copilot uses a modular architecture where Copilot features are delivered as optional modules that integrate with Elsa Server and Elsa Studio.
+
+### Module Types
+
+1. **Core Modules** (`src/Modules/Core/`)
+   - Server-side logic (activities, services, API endpoints)
+   - GitHub Copilot SDK integration
+   - Function calling implementations
+   - Placed in `src/Modules/Core/Elsa.Copilot.Modules.Core.{FeatureName}/`
+
+2. **Studio Modules** (`src/Modules/Studio/`)
+   - UI components (Blazor components)
+   - Chat sidebar and interface elements
+   - Proposal review UI
+   - Placed in `src/Modules/Studio/Elsa.Copilot.Modules.Studio.{FeatureName}/`
+
+### Creating a New Module
+
+#### 1. Create the Module Project
+
+**For a Core (Server) module:**
+```bash
+cd src/Modules/Core
+dotnet new classlib -n Elsa.Copilot.Modules.Core.MyFeature
+cd Elsa.Copilot.Modules.Core.MyFeature
+dotnet add package Elsa
+```
+
+**For a Studio module:**
+```bash
+cd src/Modules/Studio
+dotnet new razorclasslib -n Elsa.Copilot.Modules.Studio.MyFeature
+cd Elsa.Copilot.Modules.Studio.MyFeature
+dotnet add package Elsa.Studio
+dotnet add package Elsa.Studio.Core
+```
+
+#### 2. Add Module to Solution
+
+```bash
+cd /path/to/elsa-copilot
+dotnet sln add src/Modules/Core/Elsa.Copilot.Modules.Core.MyFeature/Elsa.Copilot.Modules.Core.MyFeature.csproj
+# or
+dotnet sln add src/Modules/Studio/Elsa.Copilot.Modules.Studio.MyFeature/Elsa.Copilot.Modules.Studio.MyFeature.csproj
+```
+
+#### 3. Reference in Workbench
+
+Edit `src/Elsa.Copilot.Workbench/Elsa.Copilot.Workbench.csproj`:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="..\Modules\Core\Elsa.Copilot.Modules.Core.MyFeature\Elsa.Copilot.Modules.Core.MyFeature.csproj" />
+  <!-- or -->
+  <ProjectReference Include="..\Modules\Studio\Elsa.Copilot.Modules.Studio.MyFeature\Elsa.Copilot.Modules.Studio.MyFeature.csproj" />
+</ItemGroup>
+```
+
+#### 4. Register in ModuleRegistration.cs
+
+Edit `src/Elsa.Copilot.Workbench/Setup/ModuleRegistration.cs`:
+
+```csharp
+internal static void RegisterModules(IServiceCollection svc)
+{
+    // Register Core module (server-side)
+    svc.AddSingleton<CoreModulePlaceholder>();
+    
+    // Register Studio module (UI-side)
+    svc.AddSingleton<StudioModulePlaceholder>();
+    
+    // Register your new module's services as needed
+    // Example: svc.AddSingleton<MyChatFeature>();
+}
+```
+
+### Module Implementation Guidelines
+
+#### Core Modules
+- Use Elsa's `IModule` interface for proper feature registration
+- Follow Elsa's activity and service patterns
+- Respect existing authorization and tenancy
+- Use GitHub Copilot SDK directly (no abstraction layers)
+
+#### Studio Modules
+- Create Blazor components that integrate with Elsa Studio's shell
+- Use Elsa Studio's design system and UI patterns
+- Communicate with Core modules via Elsa Server's HTTP API
+- Keep UI logic separate from business logic
+
+### Example Module Structure
+
+```text
+src/Modules/Core/Elsa.Copilot.Modules.Core.Chat/
+├── Activities/                  # Custom activities
+├── Services/                    # Business logic services
+├── Endpoints/                   # API endpoints
+└── Features.cs                  # Feature registration
+
+src/Modules/Studio/Elsa.Copilot.Modules.Studio.Chat/
+├── Components/                  # Blazor components
+├── Services/                    # Client-side services
+└── Features.cs                  # Studio feature registration
+```
+
+---
+
 ## Requirements & Roadmap
 
 - **Functional Requirements**: See [functional-requirements.md](functional-requirements.md)
 - **Development Guidelines**: See [DEVELOPMENT.md](DEVELOPMENT.md)
 - **Docker Deployment**: See [DOCKER.md](DOCKER.md)
+- **Configuration**: See [src/Elsa.Copilot.Workbench/CONFIGURATION.md](src/Elsa.Copilot.Workbench/CONFIGURATION.md)
 
 ---
 
