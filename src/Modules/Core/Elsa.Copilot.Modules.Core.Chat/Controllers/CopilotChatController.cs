@@ -33,7 +33,6 @@ public class CopilotChatController : ControllerBase
     {
         Response.ContentType = "text/event-stream";
         Response.Headers["Cache-Control"] = "no-cache";
-        Response.Headers["Connection"] = "keep-alive";
 
         try
         {

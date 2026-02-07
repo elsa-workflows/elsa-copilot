@@ -9,7 +9,7 @@ namespace Elsa.Copilot.Modules.Core.Chat.Services;
 /// </summary>
 public class MockChatClient : IChatClient
 {
-    public ChatClientMetadata Metadata => new("mock-chat-client", providerUri: null, modelId: "mock-model");
+    public ChatClientMetadata Metadata => new(providerName: "mock-chat-client", providerUri: null, modelId: "mock-model");
 
     public async IAsyncEnumerable<StreamingChatCompletionUpdate> CompleteStreamingAsync(
         IList<ChatMessage> chatMessages,
