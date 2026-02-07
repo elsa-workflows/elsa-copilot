@@ -67,6 +67,9 @@ internal static class ElsaServerSetup
             // Scheduling activities for timed workflows
             elsa.UseScheduling();
             
+            // Copilot Chat module (optional)
+            elsa.UseCopilotChat();
+            
             // Register activities and workflows from the current assembly
             elsa.AddActivitiesFrom<Program>();
             elsa.AddWorkflowsFrom<Program>();
