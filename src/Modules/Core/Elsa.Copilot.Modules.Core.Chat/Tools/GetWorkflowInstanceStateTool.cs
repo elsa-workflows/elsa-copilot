@@ -1,3 +1,4 @@
+using Elsa.Extensions;
 using Elsa.Workflows.Management;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
@@ -39,7 +40,6 @@ public class GetWorkflowInstanceStateTool
             createdAt = instance.CreatedAt,
             updatedAt = instance.UpdatedAt,
             finishedAt = instance.FinishedAt,
-            faultedAt = instance.FaultedAt,
             workflowState = new
             {
                 status = instance.WorkflowState.Status.ToString(),

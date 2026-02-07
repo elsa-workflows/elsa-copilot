@@ -1,6 +1,6 @@
+using Elsa.Common.Models;
 using Elsa.Workflows.Management;
 using Elsa.Workflows.Management.Filters;
-using Elsa.Workflows.Management.Models;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 
@@ -46,7 +46,7 @@ public class GetWorkflowDefinitionTool
             isPublished = definition.IsPublished,
             isLatest = definition.IsLatest,
             createdAt = definition.CreatedAt,
-            root = definition.Root // Activity root structure
+            materializer = definition.MaterializerName
         };
     }
 }

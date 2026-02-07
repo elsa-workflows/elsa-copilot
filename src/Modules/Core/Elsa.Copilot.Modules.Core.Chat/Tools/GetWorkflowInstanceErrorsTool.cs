@@ -1,3 +1,4 @@
+using Elsa.Extensions;
 using Elsa.Workflows.Management;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
@@ -37,24 +38,12 @@ public class GetWorkflowInstanceErrorsTool
             timestamp = i.Timestamp
         }).ToList();
 
-        var faults = instance.WorkflowState.ExecutionLog
-            .Where(log => log.ActivityType == "Fault" || !string.IsNullOrEmpty(log.Exception))
-            .Select(log => new
-            {
-                activityId = log.ActivityId,
-                activityType = log.ActivityType,
-                exception = log.Exception,
-                timestamp = log.Timestamp
-            }).ToList();
-
         return new
         {
             instanceId = instance.Id,
             status = instance.Status.ToString(),
-            faultedAt = instance.FaultedAt,
             incidents = incidents,
-            faults = faults,
-            totalErrors = incidents.Count + faults.Count
+            totalErrors = incidents.Count
         };
     }
 }

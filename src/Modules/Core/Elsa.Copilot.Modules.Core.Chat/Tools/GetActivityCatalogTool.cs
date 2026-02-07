@@ -21,7 +21,7 @@ public class GetActivityCatalogTool
         [Description("Optional category filter (e.g., 'Workflows', 'Http', 'Scheduling')")] string? category = null,
         CancellationToken cancellationToken = default)
     {
-        var activities = _activityRegistry.List();
+        var activities = _activityRegistry.ListAll();
 
         if (!string.IsNullOrWhiteSpace(category))
         {
