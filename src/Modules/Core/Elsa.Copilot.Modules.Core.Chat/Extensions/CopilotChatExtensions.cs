@@ -2,6 +2,7 @@ using Elsa.Copilot.Modules.Core.Chat.Services;
 using Elsa.Copilot.Modules.Core.Chat.Tools;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 // ReSharper disable once CheckNamespace
 namespace Elsa.Extensions;
@@ -23,9 +24,10 @@ public static class CopilotChatExtensions
         services.AddScoped<GetWorkflowInstanceStateTool>();
         services.AddScoped<GetWorkflowInstanceErrorsTool>();
 
-        // Register mock chat client (replace with actual AI provider in production)
-        // Example: services.AddSingleton<IChatClient>(sp => new OpenAIClient(...))
-        services.AddSingleton<IChatClient, MockChatClient>();
+        // Register mock chat client only if no IChatClient is already registered
+        // This allows the host to register a real AI provider before calling AddCopilotChat()
+        // Example: services.AddSingleton<IChatClient>(sp => new AzureOpenAIClient(...).AsChatClient("gpt-4"))
+        services.TryAddSingleton<IChatClient, MockChatClient>();
 
         // Register chat service
         services.AddScoped<CopilotChatService>();

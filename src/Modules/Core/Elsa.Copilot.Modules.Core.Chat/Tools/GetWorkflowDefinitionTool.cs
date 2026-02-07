@@ -18,7 +18,7 @@ public class GetWorkflowDefinitionTool
         _workflowDefinitionStore = workflowDefinitionStore;
     }
 
-    [Description("Retrieves a workflow definition's structure and metadata by ID")]
+    [Description("Retrieves a workflow definition's metadata by ID")]
     public async Task<object> GetWorkflowDefinitionAsync(
         [Description("The workflow definition ID to retrieve")] string workflowDefinitionId,
         CancellationToken cancellationToken = default)
@@ -46,7 +46,9 @@ public class GetWorkflowDefinitionTool
             isPublished = definition.IsPublished,
             isLatest = definition.IsLatest,
             createdAt = definition.CreatedAt,
-            materializer = definition.MaterializerName
+            materializer = definition.MaterializerName,
+            // Include the serialized workflow structure
+            stringData = definition.StringData
         };
     }
 }

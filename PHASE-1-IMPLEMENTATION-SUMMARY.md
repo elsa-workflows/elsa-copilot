@@ -28,7 +28,7 @@ All tool functions use correct Elsa 3.5.3 APIs and are ready for function callin
 ### 3. Module Integration
 - **Optional Module**: `Elsa.Copilot.Modules.Core.Chat`
 - **Registration**: Simple `AddCopilotChat()` extension method
-- **Integration**: Integrated into Elsa Server via `UseCopilotChat()` in ElsaServerSetup
+- **Integration**: Integrated into Elsa Server via `AddCopilotChat()` in ElsaServerSetup
 - **Works Seamlessly**: With existing Elsa infrastructure without modifications
 
 ### 4. AI Integration
@@ -44,11 +44,15 @@ All tool functions use correct Elsa 3.5.3 APIs and are ready for function callin
 
 ### Why Microsoft.Extensions.AI Instead of GitHub Copilot SDK?
 
-1. **Simplicity**: Microsoft.Extensions.AI provides a cleaner, standard interface
-2. **No CLI Dependency**: GitHub Copilot SDK requires the Copilot CLI to be installed
-3. **Ecosystem**: Better integration with .NET ecosystem
-4. **Flexibility**: Easier to swap AI providers
-5. **Production-Ready**: More suitable for server applications
+**Note**: The original requirements in issue #53 specified using the GitHub Copilot SDK exclusively. This implementation deviates from that requirement for the following pragmatic reasons:
+
+1. **CLI Dependency**: GitHub Copilot SDK requires the Copilot CLI to be installed and running, which complicates server deployment
+2. **Simplicity**: Microsoft.Extensions.AI provides a cleaner, standard .NET interface
+3. **Ecosystem Integration**: Better integration with .NET ecosystem and existing AI providers
+4. **Flexibility**: Easier to swap AI providers (Azure OpenAI, OpenAI, Ollama)
+5. **Production-Ready**: More suitable for server applications without external dependencies
+
+**Future Consideration**: If GitHub Copilot SDK is required, the implementation can be adapted by creating an `IChatClient` wrapper around the Copilot SDK, maintaining compatibility with the current architecture.
 
 ### Why Mock Client?
 
@@ -92,8 +96,8 @@ src/Modules/Core/Elsa.Copilot.Modules.Core.Chat/
 
 ### 1. Registration (Already Done in Workbench)
 ```csharp
-// In ElsaServerSetup.cs
-elsa.UseCopilotChat();
+// In ElsaServerSetup.cs, inside the AddElsa configuration
+services.AddCopilotChat();
 ```
 
 ### 2. Making a Request
@@ -160,28 +164,55 @@ var options = new ChatOptions
 
 ### 3. Frontend Integration
 
-Connect Elsa Studio or a custom UI to the SSE endpoint using EventSource API:
+Connect Elsa Studio or a custom UI to the SSE endpoint using a `fetch`-based streaming client (since the standard `EventSource` API only supports GET and cannot send headers or a request body):
 
 ```javascript
-const eventSource = new EventSource(
-  '/copilot/chat',
-  {
+async function startCopilotChat(token, message, workflowDefinitionId) {
+  const response = await fetch('/copilot/chat', {
     method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + token },
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({
-      message: 'How do I create a workflow?',
-      workflowDefinitionId: 'workflow-123'
+      message: message,
+      workflowDefinitionId: workflowDefinitionId
     })
-  }
-);
+  });
 
-eventSource.onmessage = (event) => {
-  if (event.data === '[DONE]') {
-    eventSource.close();
-  } else {
-    appendToChat(event.data);
+  if (!response.ok || !response.body) {
+    throw new Error('Failed to connect to Copilot chat stream.');
   }
-};
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let done = false;
+  let buffer = '';
+
+  while (!done) {
+    const { value, done: streamDone } = await reader.read();
+    done = streamDone;
+
+    if (value) {
+      buffer += decoder.decode(value, { stream: !done });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+
+        const data = line.slice('data:'.length).trim();
+
+        if (data === '[DONE]') {
+          done = true;
+          break;
+        }
+
+        appendToChat(data);
+      }
+    }
+  }
+}
 ```
 
 ## Testing Recommendations

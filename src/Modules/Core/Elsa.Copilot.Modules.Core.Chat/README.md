@@ -22,8 +22,8 @@ using Elsa.Extensions;
 // After AddElsa()
 builder.Services.AddCopilotChat();
 
-// Also ensure you have AddControllers()
-builder.Services.AddControllers();
+// Note: AddCopilotChat() already registers controllers.
+// Ensure you map controllers in your app pipeline: app.MapControllers();
 ```
 
 ### 2. Configure an AI Provider

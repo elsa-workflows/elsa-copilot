@@ -2,6 +2,7 @@ using Elsa.Copilot.Modules.Core.Chat.Models;
 using Elsa.Copilot.Modules.Core.Chat.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 
@@ -16,10 +17,12 @@ namespace Elsa.Copilot.Modules.Core.Chat.Controllers;
 public class CopilotChatController : ControllerBase
 {
     private readonly CopilotChatService _chatService;
+    private readonly ILogger<CopilotChatController> _logger;
 
-    public CopilotChatController(CopilotChatService chatService)
+    public CopilotChatController(CopilotChatService chatService, ILogger<CopilotChatController> logger)
     {
         _chatService = chatService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -38,9 +41,15 @@ public class CopilotChatController : ControllerBase
         {
             await foreach (var chunk in _chatService.StreamChatAsync(request, cancellationToken))
             {
-                var sseData = $"data: {chunk}\n\n";
-                var bytes = Encoding.UTF8.GetBytes(sseData);
-                await Response.Body.WriteAsync(bytes, cancellationToken);
+                // Properly format SSE data - handle multi-line content
+                var lines = chunk.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                foreach (var line in lines)
+                {
+                    var sseData = $"data: {line}\n";
+                    var bytes = Encoding.UTF8.GetBytes(sseData);
+                    await Response.Body.WriteAsync(bytes, cancellationToken);
+                }
+                await Response.Body.WriteAsync(Encoding.UTF8.GetBytes("\n"), cancellationToken);
                 await Response.Body.FlushAsync(cancellationToken);
             }
 
@@ -56,12 +65,25 @@ public class CopilotChatController : ControllerBase
         }
         catch (Exception ex)
         {
-            var errorResponse = new { error = ex.Message };
-            var errorJson = JsonSerializer.Serialize(errorResponse);
-            var errorMessage = $"data: {errorJson}\n\n";
-            var errorBytes = Encoding.UTF8.GetBytes(errorMessage);
-            await Response.Body.WriteAsync(errorBytes, cancellationToken);
-            await Response.Body.FlushAsync(cancellationToken);
+            _logger.LogError(ex, "Error processing chat request");
+            
+            // Only send error if client hasn't disconnected
+            if (!HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                try
+                {
+                    var errorResponse = new { error = "An error occurred processing your request" };
+                    var errorJson = JsonSerializer.Serialize(errorResponse);
+                    var errorMessage = $"data: {errorJson}\n\n";
+                    var errorBytes = Encoding.UTF8.GetBytes(errorMessage);
+                    await Response.Body.WriteAsync(errorBytes, default);
+                    await Response.Body.FlushAsync(default);
+                }
+                catch
+                {
+                    // Ignore errors when sending error message
+                }
+            }
         }
     }
 }

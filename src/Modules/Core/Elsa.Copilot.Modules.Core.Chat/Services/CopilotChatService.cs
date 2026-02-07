@@ -8,11 +8,13 @@ namespace Elsa.Copilot.Modules.Core.Chat.Services;
 /// <summary>
 /// Service for handling copilot chat interactions with AI function calling.
 /// NOTE: Function calling with AIFunctionFactory requires Microsoft.Extensions.AI 10.x or higher.
-/// This implementation uses a simplified approach with manual tool invocation.
+/// Currently, tools are injected but not yet wired to the chat client. 
+/// To enable function calling, upgrade to Microsoft.Extensions.AI 10.x and populate ChatOptions.Tools.
 /// </summary>
 public class CopilotChatService
 {
     private readonly IChatClient _chatClient;
+    // Tools are available for future function calling support
     private readonly GetWorkflowDefinitionTool _workflowDefinitionTool;
     private readonly GetActivityCatalogTool _activityCatalogTool;
     private readonly GetWorkflowInstanceStateTool _workflowInstanceStateTool;
@@ -34,7 +36,8 @@ public class CopilotChatService
 
     /// <summary>
     /// Streams chat responses.
-    /// NOTE: To enable function calling, upgrade to Microsoft.Extensions.AI 10.x and use AIFunctionFactory.
+    /// NOTE: To enable function calling, upgrade to Microsoft.Extensions.AI 10.x and populate ChatOptions.Tools
+    /// with AIFunctionFactory.Create() for each tool function.
     /// </summary>
     public async IAsyncEnumerable<string> StreamChatAsync(
         ChatRequest request,
@@ -48,6 +51,8 @@ public class CopilotChatService
             new(ChatRole.User, request.Message)
         };
 
+        // Tools are not currently registered in ChatOptions
+        // To enable: options.Tools = [ AIFunctionFactory.Create(...) ]
         var options = new ChatOptions();
 
         await foreach (var update in _chatClient.CompleteStreamingAsync(messages, options, cancellationToken))
