@@ -81,7 +81,7 @@ public class StudioChatClient
             // SSE format: "data: {content}"
             if (line.StartsWith("data: "))
             {
-                var data = line.Substring(6); // Remove "data: " prefix
+                var data = line[6..]; // Remove "data: " prefix
 
                 // Check for completion marker
                 if (data == "[DONE]")

@@ -186,7 +186,6 @@
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
             _messages.Remove(aiMessage);
-            SessionState.Messages.ToList().Remove(aiMessage);
         }
         finally
         {
