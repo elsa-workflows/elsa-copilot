@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Components;
 
 namespace Elsa.Copilot.Modules.Studio.Chat.Services;
 
@@ -11,10 +12,15 @@ namespace Elsa.Copilot.Modules.Studio.Chat.Services;
 public class StudioChatClient
 {
     private readonly HttpClient _httpClient;
+    private readonly NavigationManager _navigationManager;
 
-    public StudioChatClient(HttpClient httpClient)
+    public StudioChatClient(IHttpClientFactory httpClientFactory, NavigationManager navigationManager)
     {
-        _httpClient = httpClient;
+        _httpClient = httpClientFactory.CreateClient();
+        _navigationManager = navigationManager;
+        
+        // Set base address from NavigationManager
+        _httpClient.BaseAddress = new Uri(_navigationManager.BaseUri);
     }
 
     /// <summary>

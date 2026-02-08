@@ -20,7 +20,11 @@ public static class StudioChatExtensions
         
         // Register chat services
         services.AddScoped<ChatSessionState>();
+        
+        // Register HttpClient for StudioChatClient
+        // In Blazor Server, HttpClient is configured at the scoped level and needs base address
         services.AddScoped<StudioChatClient>();
+        services.AddHttpClient();
         
         return services;
     }
