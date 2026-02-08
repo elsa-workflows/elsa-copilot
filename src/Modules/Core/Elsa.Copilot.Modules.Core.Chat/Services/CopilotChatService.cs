@@ -16,10 +16,13 @@ namespace Elsa.Copilot.Modules.Core.Chat.Services;
 /// Context Injection Strategy:
 /// - WorkflowDefinitionId: Resolves to workflow structure, metadata, and activities
 /// - WorkflowInstanceId: Resolves to current state, bookmarks, incidents, and properties
-/// - SelectedActivityId: Resolves to activity metadata from the catalog
+/// - SelectedActivityId: Adds activity ID reference to context (full details available via tools when function calling is enabled)
 /// 
 /// Security: Data access respects Elsa's built-in authorization via [Authorize] attribute
 /// on the controller. All store access uses the current user's context automatically.
+/// 
+/// WARNING: Workflow instance errors may contain sensitive data (connection strings, tokens, etc.)
+/// in exception stack traces. This data is sent to the configured AI provider.
 /// 
 /// NOTE: Function calling with AIFunctionFactory requires Microsoft.Extensions.AI 10.x or higher.
 /// Currently, tools are injected but not yet wired to the chat client. 
@@ -92,12 +95,13 @@ public class CopilotChatService
     ///    - Why: Gives AI understanding of what workflow the user is working with
     /// 
     /// 2. WorkflowInstanceId: Resolves to current execution state
-    ///    - Includes: status, bookmarks (waiting activities), incidents (errors), properties
+    ///    - Includes: status, bookmarks (waiting activities), incidents count, properties count
+    ///    - Also includes detailed error information if incidents exist (WARNING: may contain sensitive data)
     ///    - Why: Gives AI context about runtime state and issues
     /// 
-    /// 3. SelectedActivityId: Resolves to activity type information
-    ///    - Includes: activity name, description, inputs, outputs, category
-    ///    - Why: Gives AI context about the specific activity user is focused on
+    /// 3. SelectedActivityId: Adds activity ID reference
+    ///    - Includes: activity ID only (not full type information)
+    ///    - Why: Lets AI know which activity the user is focused on
     /// 
     /// No custom abstractions: Uses Elsa's built-in stores directly.
     /// No token limiting: Injects all relevant data without pruning.
@@ -140,30 +144,36 @@ Be helpful, concise, and accurate.";
             });
 
             // Also include error details if the instance has any incidents
-            // Check if there are errors by looking at the incidents count in the state
+            // Parse the state JSON to structurally check the incidents count
             var stateJson = JsonSerializer.Serialize(instanceState);
-            if (stateJson.Contains("\"incidents\":") && !stateJson.Contains("\"incidents\":0"))
+            using (var doc = JsonDocument.Parse(stateJson))
             {
-                var errors = await _workflowInstanceErrorsTool.GetWorkflowInstanceErrorsAsync(
-                    request.WorkflowInstanceId, 
-                    cancellationToken);
-                
-                prompt += "\n\n## Workflow Instance Errors\n";
-                prompt += JsonSerializer.Serialize(errors, new JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
-                });
+                var root = doc.RootElement;
+                if (root.TryGetProperty("workflowState", out var workflowStateElement) &&
+                    workflowStateElement.TryGetProperty("incidents", out var incidentsElement) &&
+                    incidentsElement.ValueKind == JsonValueKind.Number &&
+                    incidentsElement.TryGetInt32(out var incidentsCount) &&
+                    incidentsCount > 0)
+                {
+                    var errors = await _workflowInstanceErrorsTool.GetWorkflowInstanceErrorsAsync(
+                        request.WorkflowInstanceId, 
+                        cancellationToken);
+
+                    prompt += "\n\n## Workflow Instance Errors\n";
+                    prompt += JsonSerializer.Serialize(errors, new JsonSerializerOptions 
+                    { 
+                        WriteIndented = true 
+                    });
+                }
             }
         }
 
         // Phase 2: Resolve and inject selected activity context
-        // Note: Only adding a reference to the activity ID here. The AI can use the
-        // GetActivityCatalog tool function if it needs detailed activity information.
+        // Note: Only adding a reference to the activity ID here.
         if (!string.IsNullOrEmpty(request.SelectedActivityId))
         {
             prompt += "\n\n## Selected Activity Context\n";
             prompt += $"Activity ID: {request.SelectedActivityId}\n";
-            prompt += "Note: Use the GetActivityCatalog tool to retrieve full activity details if needed.\n";
         }
 
         return prompt;

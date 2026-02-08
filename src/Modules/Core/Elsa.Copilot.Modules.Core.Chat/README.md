@@ -30,10 +30,10 @@ As of Phase 2, the chat endpoint now automatically resolves context references t
    - Timestamps (created, updated, finished)
    - Why: Gives AI runtime context for debugging and diagnostics
 
-3. **SelectedActivityId** → Activity type information
-   - Activity reference in context
-   - Can query activity catalog for full schema
-   - Why: Gives AI context about the specific activity user is focused on
+3. **SelectedActivityId** → Selected activity identifier
+   - Injects the selected activity's ID into context
+   - AI can use tools to query the activity catalog for full type/schema details when function calling is enabled
+   - Why: Lets AI know which activity the user is focused on, without pre-resolving its schema
 
 ### Context Injection Strategy
 
@@ -41,6 +41,8 @@ As of Phase 2, the chat endpoint now automatically resolves context references t
 - **No token limiting**: Injects all relevant data without pruning or summarization
 - **Security**: Respects Elsa's authorization model via `[Authorize]` on controller; all data access uses current user's tenant/permissions
 - **Format**: Injected as JSON in the system prompt for maximum AI comprehension
+
+⚠️ **Security Warning**: Workflow instance error details (including exception stack traces) are sent to the configured AI provider. Exception details may contain sensitive data such as connection strings, API tokens, or other credentials. Ensure your AI provider's data handling policies meet your security requirements.
 
 ### Example Context Injection
 
@@ -60,22 +62,27 @@ The AI receives the system prompt enhanced with:
   "definitionId": "my-workflow",
   "status": "Faulted",
   "workflowState": {
-    "incidents": [
-      {
-        "activityId": "activity-1",
-        "message": "HTTP request failed",
-        "exception": "...",
-        "timestamp": "2024-01-01T12:00:00Z"
-      }
-    ],
-    ...
+    "status": "Faulted",
+    "subStatus": "Faulted",
+    "bookmarks": 0,
+    "incidents": 1,
+    "properties": 2
   }
 }
 
 ## Workflow Instance Errors
 {
   "instanceId": "abc123",
-  "incidents": [...],
+  "status": "Faulted",
+  "incidents": [
+    {
+      "activityId": "activity-1",
+      "activityType": "HttpRequest",
+      "message": "HTTP request failed with status code 404",
+      "exception": "System.Net.Http.HttpRequestException: ...",
+      "timestamp": "2024-01-01T12:00:00Z"
+    }
+  ],
   "totalErrors": 1
 }
 ```
