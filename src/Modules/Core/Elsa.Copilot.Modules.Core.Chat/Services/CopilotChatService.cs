@@ -140,20 +140,14 @@ Be helpful, concise, and accurate.";
             });
 
             // Also include error details if the instance has any incidents
-            var errors = await _workflowInstanceErrorsTool.GetWorkflowInstanceErrorsAsync(
-                request.WorkflowInstanceId, 
-                cancellationToken);
-            
-            // Check if there are any errors to include
-            var errorsJson = JsonSerializer.Serialize(errors);
-            var errorsDict = JsonSerializer.Deserialize<Dictionary<string, object>>(errorsJson);
-            
-            if (errorsDict != null && 
-                errorsDict.TryGetValue("totalErrors", out var totalErrorsObj) &&
-                totalErrorsObj is JsonElement totalErrorsElement &&
-                totalErrorsElement.ValueKind == JsonValueKind.Number &&
-                totalErrorsElement.GetInt32() > 0)
+            // Check if there are errors by looking at the incidents count in the state
+            var stateJson = JsonSerializer.Serialize(instanceState);
+            if (stateJson.Contains("\"incidents\":") && !stateJson.Contains("\"incidents\":0"))
             {
+                var errors = await _workflowInstanceErrorsTool.GetWorkflowInstanceErrorsAsync(
+                    request.WorkflowInstanceId, 
+                    cancellationToken);
+                
                 prompt += "\n\n## Workflow Instance Errors\n";
                 prompt += JsonSerializer.Serialize(errors, new JsonSerializerOptions 
                 { 
@@ -163,14 +157,13 @@ Be helpful, concise, and accurate.";
         }
 
         // Phase 2: Resolve and inject selected activity context
+        // Note: Only adding a reference to the activity ID here. The AI can use the
+        // GetActivityCatalog tool function if it needs detailed activity information.
         if (!string.IsNullOrEmpty(request.SelectedActivityId))
         {
-            // Get the full activity catalog and find the selected activity
-            var catalog = await _activityCatalogTool.GetActivityCatalogAsync(null, cancellationToken);
-            
             prompt += "\n\n## Selected Activity Context\n";
             prompt += $"Activity ID: {request.SelectedActivityId}\n";
-            prompt += "Note: Activity details can be found in the activity catalog if needed.\n";
+            prompt += "Note: Use the GetActivityCatalog tool to retrieve full activity details if needed.\n";
         }
 
         return prompt;
