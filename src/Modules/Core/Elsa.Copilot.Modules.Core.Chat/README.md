@@ -5,10 +5,87 @@ A chat-based AI assistant module for Elsa Workflows that provides context-aware 
 ## Features
 
 - **Chat API Endpoint**: `POST /copilot/chat` with Server-Sent Events streaming
-- **Context-Aware**: Supports workflow definition, instance, and activity context
+- **Contextual Workflow Awareness (Phase 2)**: Automatically resolves and injects workflow, instance, and activity data into AI context
 - **Tool Functions**: 4 built-in tools for accessing Elsa workflow data
 - **Elsa Authentication**: Uses `[Authorize]` attribute for security
 - **Microsoft.Extensions.AI**: Uses the standard .NET AI abstractions
+
+## Phase 2: Contextual Workflow Awareness
+
+As of Phase 2, the chat endpoint now automatically resolves context references to full workflow data:
+
+### What Gets Resolved and Injected
+
+1. **WorkflowDefinitionId** → Full workflow definition data
+   - Workflow metadata (name, description, version, published status)
+   - Complete workflow structure (activities, connections, serialized definition)
+   - Timestamps (created, updated)
+   - Why: Gives AI complete understanding of workflow structure and design
+
+2. **WorkflowInstanceId** → Current execution state
+   - Instance status (Running, Finished, Faulted, etc.)
+   - Bookmarks (activities currently waiting for input)
+   - Incidents (errors and exceptions with full stack traces)
+   - Workflow properties (variables and state)
+   - Timestamps (created, updated, finished)
+   - Why: Gives AI runtime context for debugging and diagnostics
+
+3. **SelectedActivityId** → Selected activity identifier
+   - Injects the selected activity's ID into context
+   - AI can use tools to query the activity catalog for full type/schema details when function calling is enabled
+   - Why: Lets AI know which activity the user is focused on, without pre-resolving its schema
+
+### Context Injection Strategy
+
+- **No custom abstractions**: Uses Elsa's built-in `IWorkflowDefinitionStore` and `IWorkflowInstanceStore` directly
+- **No token limiting**: Injects all relevant data without pruning or summarization
+- **Security**: Respects Elsa's authorization model via `[Authorize]` on controller; all data access uses current user's tenant/permissions
+- **Format**: Injected as JSON in the system prompt for maximum AI comprehension
+
+⚠️ **Security Warning**: Workflow instance error details (including exception stack traces) are sent to the configured AI provider. Exception details may contain sensitive data such as connection strings, API tokens, or other credentials. Ensure your AI provider's data handling policies meet your security requirements.
+
+### Example Context Injection
+
+When you send:
+```json
+{
+  "message": "Why did this workflow fail?",
+  "workflowInstanceId": "abc123"
+}
+```
+
+The AI receives the system prompt enhanced with:
+```
+## Current Workflow Instance State
+{
+  "id": "abc123",
+  "definitionId": "my-workflow",
+  "status": "Faulted",
+  "workflowState": {
+    "status": "Faulted",
+    "subStatus": "Faulted",
+    "bookmarks": 0,
+    "incidents": 1,
+    "properties": 2
+  }
+}
+
+## Workflow Instance Errors
+{
+  "instanceId": "abc123",
+  "status": "Faulted",
+  "incidents": [
+    {
+      "activityId": "activity-1",
+      "activityType": "HttpRequest",
+      "message": "HTTP request failed with status code 404",
+      "exception": "System.Net.Http.HttpRequestException: ...",
+      "timestamp": "2024-01-01T12:00:00Z"
+    }
+  ],
+  "totalErrors": 1
+}
+```
 
 ## Quick Start
 

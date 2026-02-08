@@ -2,11 +2,28 @@ using Elsa.Copilot.Modules.Core.Chat.Models;
 using Elsa.Copilot.Modules.Core.Chat.Tools;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace Elsa.Copilot.Modules.Core.Chat.Services;
 
 /// <summary>
-/// Service for handling copilot chat interactions with AI function calling.
+/// Service for handling copilot chat interactions with contextual workflow awareness.
+/// 
+/// Phase 2: Contextual Workflow Awareness
+/// This service resolves WorkflowDefinitionId/InstanceId references to full workflow data
+/// and injects relevant state, logs, and context into the AI system prompt.
+/// 
+/// Context Injection Strategy:
+/// - WorkflowDefinitionId: Resolves to workflow structure, metadata, and activities
+/// - WorkflowInstanceId: Resolves to current state, bookmarks, incidents, and properties
+/// - SelectedActivityId: Adds activity ID reference to context (full details available via tools when function calling is enabled)
+/// 
+/// Security: Data access respects Elsa's built-in authorization via [Authorize] attribute
+/// on the controller. All store access uses the current user's context automatically.
+/// 
+/// WARNING: Workflow instance errors may contain sensitive data (connection strings, tokens, etc.)
+/// in exception stack traces. This data is sent to the configured AI provider.
+/// 
 /// NOTE: Function calling with AIFunctionFactory requires Microsoft.Extensions.AI 10.x or higher.
 /// Currently, tools are injected but not yet wired to the chat client. 
 /// To enable function calling, upgrade to Microsoft.Extensions.AI 10.x and populate ChatOptions.Tools.
@@ -35,7 +52,11 @@ public class CopilotChatService
     }
 
     /// <summary>
-    /// Streams chat responses.
+    /// Streams chat responses with contextual workflow awareness.
+    /// 
+    /// Phase 2 Enhancement: Resolves WorkflowDefinitionId/InstanceId/ActivityId references
+    /// to full data and injects into AI context before streaming the response.
+    /// 
     /// NOTE: To enable function calling, upgrade to Microsoft.Extensions.AI 10.x and populate ChatOptions.Tools
     /// with AIFunctionFactory.Create() for each tool function.
     /// </summary>
@@ -43,7 +64,7 @@ public class CopilotChatService
         ChatRequest request,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var systemPrompt = BuildSystemPrompt(request);
+        var systemPrompt = await BuildSystemPromptWithContextAsync(request, cancellationToken);
 
         var messages = new List<ChatMessage>
         {
@@ -64,26 +85,95 @@ public class CopilotChatService
         }
     }
 
-    private string BuildSystemPrompt(ChatRequest request)
+    /// <summary>
+    /// Builds a system prompt with resolved workflow context data.
+    /// 
+    /// Context Resolution Strategy (Phase 2):
+    /// 
+    /// 1. WorkflowDefinitionId: Resolves to workflow metadata and structure
+    ///    - Includes: name, description, version, activities, and workflow definition data
+    ///    - Why: Gives AI understanding of what workflow the user is working with
+    /// 
+    /// 2. WorkflowInstanceId: Resolves to current execution state
+    ///    - Includes: status, bookmarks (waiting activities), incidents count, properties count
+    ///    - Also includes detailed error information if incidents exist (WARNING: may contain sensitive data)
+    ///    - Why: Gives AI context about runtime state and issues
+    /// 
+    /// 3. SelectedActivityId: Adds activity ID reference
+    ///    - Includes: activity ID only (not full type information)
+    ///    - Why: Lets AI know which activity the user is focused on
+    /// 
+    /// No custom abstractions: Uses Elsa's built-in stores directly.
+    /// No token limiting: Injects all relevant data without pruning.
+    /// Security: Respects user permissions via Elsa's authorization model.
+    /// </summary>
+    private async Task<string> BuildSystemPromptWithContextAsync(
+        ChatRequest request, 
+        CancellationToken cancellationToken)
     {
         var prompt = @"You are an AI assistant for Elsa Workflows, a powerful workflow engine.
 You help users understand, debug, and work with workflows, activities, and workflow instances.
 
 Be helpful, concise, and accurate.";
 
+        // Phase 2: Resolve and inject workflow definition context
         if (!string.IsNullOrEmpty(request.WorkflowDefinitionId))
         {
-            prompt += $"\n\nCurrent workflow definition context: {request.WorkflowDefinitionId}";
+            var workflowData = await _workflowDefinitionTool.GetWorkflowDefinitionAsync(
+                request.WorkflowDefinitionId, 
+                cancellationToken);
+            
+            prompt += "\n\n## Current Workflow Definition Context\n";
+            prompt += JsonSerializer.Serialize(workflowData, new JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
         }
 
+        // Phase 2: Resolve and inject workflow instance context
         if (!string.IsNullOrEmpty(request.WorkflowInstanceId))
         {
-            prompt += $"\nCurrent workflow instance context: {request.WorkflowInstanceId}";
+            var instanceState = await _workflowInstanceStateTool.GetWorkflowInstanceStateAsync(
+                request.WorkflowInstanceId, 
+                cancellationToken);
+            
+            prompt += "\n\n## Current Workflow Instance State\n";
+            prompt += JsonSerializer.Serialize(instanceState, new JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+
+            // Also include error details if the instance has any incidents
+            // Parse the state JSON to structurally check the incidents count
+            var stateJson = JsonSerializer.Serialize(instanceState);
+            using (var doc = JsonDocument.Parse(stateJson))
+            {
+                var root = doc.RootElement;
+                if (root.TryGetProperty("workflowState", out var workflowStateElement) &&
+                    workflowStateElement.TryGetProperty("incidents", out var incidentsElement) &&
+                    incidentsElement.ValueKind == JsonValueKind.Number &&
+                    incidentsElement.TryGetInt32(out var incidentsCount) &&
+                    incidentsCount > 0)
+                {
+                    var errors = await _workflowInstanceErrorsTool.GetWorkflowInstanceErrorsAsync(
+                        request.WorkflowInstanceId, 
+                        cancellationToken);
+
+                    prompt += "\n\n## Workflow Instance Errors\n";
+                    prompt += JsonSerializer.Serialize(errors, new JsonSerializerOptions 
+                    { 
+                        WriteIndented = true 
+                    });
+                }
+            }
         }
 
+        // Phase 2: Resolve and inject selected activity context
+        // Note: Only adding a reference to the activity ID here.
         if (!string.IsNullOrEmpty(request.SelectedActivityId))
         {
-            prompt += $"\nSelected activity: {request.SelectedActivityId}";
+            prompt += "\n\n## Selected Activity Context\n";
+            prompt += $"Activity ID: {request.SelectedActivityId}\n";
         }
 
         return prompt;
