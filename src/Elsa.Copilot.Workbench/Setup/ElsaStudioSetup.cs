@@ -5,6 +5,7 @@ using Elsa.Studio.Login.BlazorServer.Extensions;
 using Elsa.Studio.Models;
 using Elsa.Studio.Shell.Extensions;
 using Elsa.Studio.Workflows.Extensions;
+using Elsa.Copilot.Modules.Studio.Chat.Extensions;
 
 namespace Elsa.Copilot.Workbench.Setup;
 
@@ -39,6 +40,9 @@ internal static class ElsaStudioSetup
         // Studio feature modules
         svc.AddDashboardModule();
         svc.AddWorkflowsModule();
+        
+        // Copilot Chat UI module
+        svc.AddStudioChatModule();
         
         // Login module for authentication (when needed)
         // Currently disabled for simplified development setup

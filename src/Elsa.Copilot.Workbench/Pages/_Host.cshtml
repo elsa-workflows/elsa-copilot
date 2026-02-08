@@ -1,6 +1,7 @@
 @page "/"
 @using Elsa.Studio.Shell
 @using Microsoft.AspNetCore.Components.Web
+@using Elsa.Copilot.Workbench.Pages
 @namespace Elsa.Copilot.Workbench.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
@@ -12,10 +13,12 @@
     <base href="~/"/>
     <title>Elsa Copilot Workbench</title>
     <link href="_content/Elsa.Studio.Shell/css/shell.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered"/>
 </head>
 <body>
-<component type="typeof(App)" render-mode="ServerPrerendered" />
+<component type="typeof(AppWrapper)" render-mode="ServerPrerendered" />
 
 <div id="blazor-error-ui">
     An error occurred. Reload the page.
@@ -23,5 +26,6 @@
     <a class="dismiss">×</a>
 </div>
 <script src="_framework/blazor.server.js"></script>
+<script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 </html>

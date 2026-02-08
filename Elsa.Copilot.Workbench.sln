@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elsa.Copilot.Modules.Studio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elsa.Copilot.Modules.Core.Chat", "src\Modules\Core\Elsa.Copilot.Modules.Core.Chat\Elsa.Copilot.Modules.Core.Chat.csproj", "{6110FF31-8293-442B-BAD8-83EC4AE003AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elsa.Copilot.Modules.Studio.Chat", "src\Modules\Studio\Elsa.Copilot.Modules.Studio.Chat\Elsa.Copilot.Modules.Studio.Chat.csproj", "{D22300D0-D033-4954-B4BF-906B1B0AAD99}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,6 +79,18 @@ Global
 		{6110FF31-8293-442B-BAD8-83EC4AE003AD}.Release|x64.Build.0 = Release|Any CPU
 		{6110FF31-8293-442B-BAD8-83EC4AE003AD}.Release|x86.ActiveCfg = Release|Any CPU
 		{6110FF31-8293-442B-BAD8-83EC4AE003AD}.Release|x86.Build.0 = Release|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Debug|x64.Build.0 = Debug|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Debug|x86.Build.0 = Debug|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Release|x64.ActiveCfg = Release|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Release|x64.Build.0 = Release|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Release|x86.ActiveCfg = Release|Any CPU
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -89,5 +103,6 @@ Global
 		{3C1DC29A-5B4B-BEAD-1B53-316270E7D5C6} = {EC447DCF-ABFA-6E24-52A5-D7FD48A5C558}
 		{0C9EB74E-7FD5-463C-A47D-D5C8CB3E6198} = {3C1DC29A-5B4B-BEAD-1B53-316270E7D5C6}
 		{6110FF31-8293-442B-BAD8-83EC4AE003AD} = {D6D160DD-AE2A-0C32-F31B-9BD72717AAF2}
+		{D22300D0-D033-4954-B4BF-906B1B0AAD99} = {3C1DC29A-5B4B-BEAD-1B53-316270E7D5C6}
 	EndGlobalSection
 EndGlobal
