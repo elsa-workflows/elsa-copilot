@@ -1,0 +1,65 @@
+@using Elsa.Copilot.Modules.Studio.Chat.Models
+@using MudBlazor
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error">
+        <MudText Typo="Typo.h6">Workflow Failure Detected</MudText>
+    </MudAlert>
+    
+    <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2"><strong>Root Cause:</strong></MudText>
+    <MudText>@Summary.RootCause</MudText>
+    
+    @if (Summary.Incidents.Any())
+    {
+        <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2"><strong>Incidents (@Summary.Incidents.Count):</strong></MudText>
+        <MudList T="string" Dense="true">
+            @foreach (var incident in Summary.Incidents)
+            {
+                <MudListItem T="string">
+                    <MudStack Row="true" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.BugReport" Color="Color.Error" Size="Size.Small" />
+                        <div>
+                            <MudText Typo="Typo.body2"><strong>@incident.ActivityType</strong> (ID: @incident.ActivityId)</MudText>
+                            <MudText Typo="Typo.caption">@incident.Message</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@incident.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                        </div>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    }
+    
+    @if (Summary.SuggestedActions.Any())
+    {
+        <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2"><strong>Suggested Actions:</strong></MudText>
+        <MudList T="string" Dense="true">
+            @foreach (var action in Summary.SuggestedActions)
+            {
+                <MudListItem T="string">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start">
+                        <MudIcon Icon="@Icons.Material.Filled.Lightbulb" Color="Color.Warning" Size="Size.Small" Style="margin-top: 2px;" />
+                        <MudText Typo="Typo.body2">@action</MudText>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    }
+    
+    <MudDivider Class="my-4" />
+    
+    <MudButton 
+        StartIcon="@Icons.Material.Filled.Assistant" 
+        Color="Color.Primary" 
+        Variant="Variant.Filled"
+        OnClick="OnExplainFailure">
+        Ask Copilot to Explain
+    </MudButton>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public DiagnosticSummary Summary { get; set; } = new();
+    
+    [Parameter]
+    public EventCallback OnExplainFailure { get; set; }
+}

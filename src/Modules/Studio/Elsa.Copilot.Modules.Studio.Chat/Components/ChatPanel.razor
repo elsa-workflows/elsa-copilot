@@ -55,14 +55,29 @@
             AdornmentIcon="@Icons.Material.Filled.Send"
             OnAdornmentClick="SendMessage" />
         
-        <MudButton 
-            StartIcon="@Icons.Material.Filled.AttachFile" 
-            Size="Size.Small" 
-            Variant="Variant.Text"
-            OnClick="OpenContextSelector"
-            Disabled="@_isStreaming">
-            Attach Context
-        </MudButton>
+        <MudStack Row="true" Spacing="2" Class="mt-2">
+            <MudButton 
+                StartIcon="@Icons.Material.Filled.AttachFile" 
+                Size="Size.Small" 
+                Variant="Variant.Text"
+                OnClick="OpenContextSelector"
+                Disabled="@_isStreaming">
+                Attach Context
+            </MudButton>
+            
+            @if (!string.IsNullOrEmpty(SessionState.CurrentContext?.WorkflowInstanceId))
+            {
+                <MudButton 
+                    StartIcon="@Icons.Material.Filled.Troubleshoot" 
+                    Size="Size.Small" 
+                    Variant="Variant.Text"
+                    Color="Color.Warning"
+                    OnClick="ExplainFailure"
+                    Disabled="@_isStreaming">
+                    Explain Failure
+                </MudButton>
+            }
+        </MudStack>
     </div>
 </div>
 
@@ -276,6 +291,20 @@
             return $"Instance: {SessionState.CurrentContext.WorkflowInstanceId}";
 
         return "Context attached";
+    }
+
+    // Phase 4: Diagnostic feature - explain workflow failure
+    private async Task ExplainFailure()
+    {
+        if (string.IsNullOrEmpty(SessionState.CurrentContext?.WorkflowInstanceId))
+            return;
+
+        // Set the input message to request failure explanation
+        _inputMessage = $"Please explain the failure in workflow instance {SessionState.CurrentContext.WorkflowInstanceId}. " +
+                       "Provide a detailed root cause analysis, explain what went wrong, and suggest specific steps to fix the issue.";
+        
+        // Send the message
+        await SendMessage();
     }
 
     public void Dispose()
