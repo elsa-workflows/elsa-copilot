@@ -36,19 +36,22 @@ public class CopilotChatService
     private readonly GetActivityCatalogTool _activityCatalogTool;
     private readonly GetWorkflowInstanceStateTool _workflowInstanceStateTool;
     private readonly GetWorkflowInstanceErrorsTool _workflowInstanceErrorsTool;
+    private readonly GetWorkflowDiagnosticsSnapshotTool _workflowDiagnosticsSnapshotTool;
 
     public CopilotChatService(
         IChatClient chatClient,
         GetWorkflowDefinitionTool workflowDefinitionTool,
         GetActivityCatalogTool activityCatalogTool,
         GetWorkflowInstanceStateTool workflowInstanceStateTool,
-        GetWorkflowInstanceErrorsTool workflowInstanceErrorsTool)
+        GetWorkflowInstanceErrorsTool workflowInstanceErrorsTool,
+        GetWorkflowDiagnosticsSnapshotTool workflowDiagnosticsSnapshotTool)
     {
         _chatClient = chatClient;
         _workflowDefinitionTool = workflowDefinitionTool;
         _activityCatalogTool = activityCatalogTool;
         _workflowInstanceStateTool = workflowInstanceStateTool;
         _workflowInstanceErrorsTool = workflowInstanceErrorsTool;
+        _workflowDiagnosticsSnapshotTool = workflowDiagnosticsSnapshotTool;
     }
 
     /// <summary>
@@ -114,7 +117,18 @@ public class CopilotChatService
         var prompt = @"You are an AI assistant for Elsa Workflows, a powerful workflow engine.
 You help users understand, debug, and work with workflows, activities, and workflow instances.
 
-Be helpful, concise, and accurate.";
+Be helpful, concise, and accurate.
+
+## Diagnostic & Troubleshooting Capabilities (Phase 4)
+When analyzing workflow failures:
+1. Identify the root cause by examining the execution timeline and incidents
+2. Consider the sequence of activities that executed before the failure
+3. Look for patterns like timeout errors, connection issues, or null reference exceptions
+4. Provide clear explanations of what went wrong and why
+5. Suggest specific, actionable next steps to resolve the issue
+6. Reference specific activity IDs and types when explaining problems
+
+Use the GetWorkflowDiagnosticsSnapshot tool when you need comprehensive failure analysis.";
 
         // Phase 2: Resolve and inject workflow definition context
         if (!string.IsNullOrEmpty(request.WorkflowDefinitionId))
@@ -144,7 +158,7 @@ Be helpful, concise, and accurate.";
             });
 
             // Also include error details if the instance has any incidents
-            // Parse the state JSON to structurally check the incidents count
+            // Phase 4: Include comprehensive diagnostic snapshot for failed instances
             var stateJson = JsonSerializer.Serialize(instanceState);
             using (var doc = JsonDocument.Parse(stateJson))
             {
@@ -164,6 +178,25 @@ Be helpful, concise, and accurate.";
                     { 
                         WriteIndented = true 
                     });
+
+                    // Phase 4: Include comprehensive diagnostic snapshot for better AI analysis
+                    try
+                    {
+                        var diagnosticSnapshot = await _workflowDiagnosticsSnapshotTool.GetDiagnosticsSnapshotAsync(
+                            request.WorkflowInstanceId,
+                            cancellationToken);
+
+                        prompt += "\n\n## Comprehensive Diagnostic Snapshot\n";
+                        prompt += JsonSerializer.Serialize(diagnosticSnapshot, new JsonSerializerOptions 
+                        { 
+                            WriteIndented = true 
+                        });
+                    }
+                    catch (Exception)
+                    {
+                        // If diagnostic snapshot fails, continue with basic error information
+                        // The errors above are still available for analysis
+                    }
                 }
             }
         }
