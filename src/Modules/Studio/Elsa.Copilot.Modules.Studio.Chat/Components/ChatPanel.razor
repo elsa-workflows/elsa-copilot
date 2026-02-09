@@ -1,9 +1,11 @@
 @using Elsa.Copilot.Modules.Studio.Chat.Models
 @using Elsa.Copilot.Modules.Studio.Chat.Services
 @using MudBlazor
+@using System.Text
 @inject StudioChatClient ChatClient
 @inject ChatSessionState SessionState
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 <div class="copilot-chat-panel @(_isOpen ? "open" : "")">
     <div class="chat-panel-header">
@@ -108,6 +110,7 @@
     private bool _isStreaming = false;
     private string _inputMessage = string.Empty;
     private List<ChatMessage> _messages = new();
+    private CancellationTokenSource? _streamingCts;
     
     // Context selector
     private bool _showContextSelector = false;
@@ -116,7 +119,7 @@
     private string? _contextSelectedActivityId;
     private string? _contextDisplayName;
     
-    private DialogOptions _dialogOptions = new()
+    private readonly DialogOptions _dialogOptions = new()
     {
         MaxWidth = MaxWidth.Small,
         FullWidth = true
@@ -130,7 +133,21 @@
     private void TogglePanel()
     {
         _isOpen = !_isOpen;
+        
+        // Cancel any in-flight streaming when closing the panel
+        if (!_isOpen)
+        {
+            CancelStreaming();
+        }
+        
         StateHasChanged();
+    }
+
+    private void CancelStreaming()
+    {
+        _streamingCts?.Cancel();
+        _streamingCts?.Dispose();
+        _streamingCts = null;
     }
 
     private async Task SendMessage()
@@ -162,6 +179,10 @@
         SessionState.AddMessage(aiMessage);
         _messages.Add(aiMessage);
 
+        // Create a new cancellation token for this request
+        _streamingCts = new CancellationTokenSource();
+        var contentBuilder = new StringBuilder();
+
         try
         {
             await ChatClient.StreamChatAsync(
@@ -171,9 +192,11 @@
                 SessionState.CurrentContext?.SelectedActivityId,
                 chunk =>
                 {
-                    aiMessage.Content += chunk;
+                    contentBuilder.Append(chunk);
+                    aiMessage.Content = contentBuilder.ToString();
                     InvokeAsync(StateHasChanged);
-                });
+                },
+                _streamingCts.Token);
 
             aiMessage.IsStreaming = false;
             SessionState.UpdateMessage(aiMessage.Id, msg =>
@@ -182,14 +205,24 @@
                 msg.IsStreaming = false;
             });
         }
+        catch (OperationCanceledException)
+        {
+            // Request was cancelled - remove the AI message
+            Snackbar.Add("Request cancelled", Severity.Info);
+            _messages.Remove(aiMessage);
+            SessionState.RemoveMessage(aiMessage.Id);
+        }
         catch (Exception ex)
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
             _messages.Remove(aiMessage);
+            SessionState.RemoveMessage(aiMessage.Id);
         }
         finally
         {
             _isStreaming = false;
+            _streamingCts?.Dispose();
+            _streamingCts = null;
             StateHasChanged();
         }
     }
@@ -243,5 +276,10 @@
             return $"Instance: {SessionState.CurrentContext.WorkflowInstanceId}";
 
         return "Context attached";
+    }
+
+    public void Dispose()
+    {
+        CancelStreaming();
     }
 }

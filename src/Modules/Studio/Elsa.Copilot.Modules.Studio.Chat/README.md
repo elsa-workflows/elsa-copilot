@@ -134,8 +134,25 @@ Custom CSS is defined in `ChatPanel.razor.css`:
 ## Security
 
 - All chat requests go through Elsa's `[Authorize]` attribute on the controller
-- HttpClient automatically includes authentication headers when configured
+- **Authentication Configuration**: The `StudioChatClient` uses the default `HttpClient` created by `IHttpClientFactory.CreateClient()`. In Blazor Server, this client does not automatically include authentication headers. You must configure authentication in one of the following ways:
+  - **Option 1**: Use a named HttpClient with a delegating handler that adds the required `Authorization` header or API key
+  - **Option 2**: Configure the default HttpClient with authentication via `services.AddHttpClient()` and a message handler
+  - **Option 3**: Use the same authenticated HttpClient as Elsa Studio's backend API calls (e.g., from `AddRemoteBackend`)
 - Context references are resolved on the server with proper authorization checks
+
+### Example Authentication Configuration
+
+```csharp
+// In ElsaStudioSetup.cs or Startup.cs
+services.AddHttpClient("CopilotChat", client =>
+{
+    client.BaseAddress = new Uri("https://your-backend-url");
+})
+.AddHttpMessageHandler<AuthenticationHandler>();
+
+// Then modify StudioChatClient to use the named client:
+// _httpClient = httpClientFactory.CreateClient("CopilotChat");
+```
 
 ## Future Enhancements
 

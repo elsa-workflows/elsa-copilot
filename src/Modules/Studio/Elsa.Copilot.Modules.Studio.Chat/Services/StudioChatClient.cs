@@ -53,7 +53,7 @@ public class StudioChatClient
             Encoding.UTF8,
             "application/json");
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/copilot/chat")
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "copilot/chat")
         {
             Content = content
         };
@@ -69,8 +69,6 @@ public class StudioChatClient
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
-
-        var buffer = new StringBuilder();
 
         while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
         {

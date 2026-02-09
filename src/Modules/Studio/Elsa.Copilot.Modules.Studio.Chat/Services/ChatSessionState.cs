@@ -41,6 +41,18 @@ public class ChatSessionState
     }
     
     /// <summary>
+    /// Removes a message from the session by its ID.
+    /// </summary>
+    public void RemoveMessage(string messageId)
+    {
+        var message = _messages.FirstOrDefault(m => m.Id == messageId);
+        if (message != null)
+        {
+            _messages.Remove(message);
+        }
+    }
+    
+    /// <summary>
     /// Clears all messages from the session.
     /// </summary>
     public void ClearMessages()
