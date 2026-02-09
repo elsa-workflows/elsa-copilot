@@ -1,0 +1,285 @@
+@using Elsa.Copilot.Modules.Studio.Chat.Models
+@using Elsa.Copilot.Modules.Studio.Chat.Services
+@using MudBlazor
+@using System.Text
+@inject StudioChatClient ChatClient
+@inject ChatSessionState SessionState
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<div class="copilot-chat-panel @(_isOpen ? "open" : "")">
+    <div class="chat-panel-header">
+        <MudText Typo="Typo.h6">Elsa Copilot</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="TogglePanel" />
+    </div>
+    
+    <div class="chat-panel-body">
+        @if (SessionState.CurrentContext != null)
+        {
+            <MudChip T="string" Color="Color.Primary" Size="Size.Small" OnClose="ClearContext">
+                @GetContextDisplayText()
+            </MudChip>
+        }
+        
+        <div class="chat-messages">
+            @foreach (var msg in _messages)
+            {
+                <div class="chat-message @(msg.IsUser ? "user-message" : "ai-message")">
+                    <MudPaper Elevation="1" Class="message-bubble">
+                        <div class="message-sender">@(msg.IsUser ? "You" : "Copilot")</div>
+                        <div class="message-content">@msg.Content</div>
+                        <div class="message-time">@msg.Timestamp.ToString("HH:mm")</div>
+                    </MudPaper>
+                </div>
+            }
+            @if (_isStreaming)
+            {
+                <div class="chat-message ai-message">
+                    <MudPaper Elevation="1" Class="message-bubble">
+                        <div class="message-sender">Copilot</div>
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    </MudPaper>
+                </div>
+            }
+        </div>
+    </div>
+    
+    <div class="chat-panel-footer">
+        <MudTextField 
+            @bind-Value="_inputMessage" 
+            Placeholder="Ask about workflows..." 
+            Variant="Variant.Outlined"
+            Margin="Margin.Dense"
+            Disabled="@_isStreaming"
+            Adornment="Adornment.End"
+            AdornmentIcon="@Icons.Material.Filled.Send"
+            OnAdornmentClick="SendMessage" />
+        
+        <MudButton 
+            StartIcon="@Icons.Material.Filled.AttachFile" 
+            Size="Size.Small" 
+            Variant="Variant.Text"
+            OnClick="OpenContextSelector"
+            Disabled="@_isStreaming">
+            Attach Context
+        </MudButton>
+    </div>
+</div>
+
+<MudFab 
+    StartIcon="@Icons.Material.Filled.Chat" 
+    Color="Color.Primary" 
+    Class="copilot-fab"
+    OnClick="TogglePanel"
+    Style="@(_isOpen ? "display: none;" : "")" />
+
+<MudDialog @bind-Visible="_showContextSelector" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Attach Context</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField 
+            @bind-Value="_contextWorkflowDefinitionId" 
+            Label="Workflow Definition ID" 
+            Variant="Variant.Outlined"
+            Margin="Margin.Dense" />
+        <MudTextField 
+            @bind-Value="_contextWorkflowInstanceId" 
+            Label="Workflow Instance ID" 
+            Variant="Variant.Outlined"
+            Margin="Margin.Dense" />
+        <MudTextField 
+            @bind-Value="_contextSelectedActivityId" 
+            Label="Selected Activity ID" 
+            Variant="Variant.Outlined"
+            Margin="Margin.Dense" />
+        <MudTextField 
+            @bind-Value="_contextDisplayName" 
+            Label="Display Name" 
+            Variant="Variant.Outlined"
+            Margin="Margin.Dense" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CancelContextSelector">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="ApplyContext">Apply</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _isOpen = false;
+    private bool _isStreaming = false;
+    private string _inputMessage = string.Empty;
+    private List<ChatMessage> _messages = new();
+    private CancellationTokenSource? _streamingCts;
+    
+    // Context selector
+    private bool _showContextSelector = false;
+    private string? _contextWorkflowDefinitionId;
+    private string? _contextWorkflowInstanceId;
+    private string? _contextSelectedActivityId;
+    private string? _contextDisplayName;
+    
+    private readonly DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    protected override void OnInitialized()
+    {
+        _messages = SessionState.Messages.ToList();
+    }
+
+    private void TogglePanel()
+    {
+        _isOpen = !_isOpen;
+        
+        // Cancel any in-flight streaming when closing the panel
+        if (!_isOpen)
+        {
+            CancelStreaming();
+        }
+        
+        StateHasChanged();
+    }
+
+    private void CancelStreaming()
+    {
+        _streamingCts?.Cancel();
+        _streamingCts?.Dispose();
+        _streamingCts = null;
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_inputMessage) || _isStreaming)
+            return;
+
+        var userMessage = new ChatMessage
+        {
+            Content = _inputMessage,
+            IsUser = true
+        };
+        
+        SessionState.AddMessage(userMessage);
+        _messages.Add(userMessage);
+        
+        var messageToSend = _inputMessage;
+        _inputMessage = string.Empty;
+        _isStreaming = true;
+        StateHasChanged();
+
+        var aiMessage = new ChatMessage
+        {
+            Content = string.Empty,
+            IsUser = false,
+            IsStreaming = true
+        };
+        
+        SessionState.AddMessage(aiMessage);
+        _messages.Add(aiMessage);
+
+        // Create a new cancellation token for this request
+        _streamingCts = new CancellationTokenSource();
+        var contentBuilder = new StringBuilder();
+
+        try
+        {
+            await ChatClient.StreamChatAsync(
+                messageToSend,
+                SessionState.CurrentContext?.WorkflowDefinitionId,
+                SessionState.CurrentContext?.WorkflowInstanceId,
+                SessionState.CurrentContext?.SelectedActivityId,
+                chunk =>
+                {
+                    contentBuilder.Append(chunk);
+                    aiMessage.Content = contentBuilder.ToString();
+                    InvokeAsync(StateHasChanged);
+                },
+                _streamingCts.Token);
+
+            aiMessage.IsStreaming = false;
+            SessionState.UpdateMessage(aiMessage.Id, msg =>
+            {
+                msg.Content = aiMessage.Content;
+                msg.IsStreaming = false;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Request was cancelled - remove the AI message
+            Snackbar.Add("Request cancelled", Severity.Info);
+            _messages.Remove(aiMessage);
+            SessionState.RemoveMessage(aiMessage.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            _messages.Remove(aiMessage);
+            SessionState.RemoveMessage(aiMessage.Id);
+        }
+        finally
+        {
+            _isStreaming = false;
+            _streamingCts?.Dispose();
+            _streamingCts = null;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenContextSelector()
+    {
+        _contextWorkflowDefinitionId = SessionState.CurrentContext?.WorkflowDefinitionId;
+        _contextWorkflowInstanceId = SessionState.CurrentContext?.WorkflowInstanceId;
+        _contextSelectedActivityId = SessionState.CurrentContext?.SelectedActivityId;
+        _contextDisplayName = SessionState.CurrentContext?.DisplayName;
+        _showContextSelector = true;
+    }
+
+    private void CancelContextSelector()
+    {
+        _showContextSelector = false;
+    }
+
+    private void ApplyContext()
+    {
+        SessionState.CurrentContext = new ChatContextReference
+        {
+            WorkflowDefinitionId = _contextWorkflowDefinitionId,
+            WorkflowInstanceId = _contextWorkflowInstanceId,
+            SelectedActivityId = _contextSelectedActivityId,
+            DisplayName = _contextDisplayName
+        };
+        
+        _showContextSelector = false;
+        StateHasChanged();
+    }
+
+    private void ClearContext()
+    {
+        SessionState.CurrentContext = null;
+        StateHasChanged();
+    }
+
+    private string GetContextDisplayText()
+    {
+        if (SessionState.CurrentContext == null)
+            return string.Empty;
+
+        if (!string.IsNullOrEmpty(SessionState.CurrentContext.DisplayName))
+            return SessionState.CurrentContext.DisplayName;
+
+        if (!string.IsNullOrEmpty(SessionState.CurrentContext.WorkflowDefinitionId))
+            return $"Workflow: {SessionState.CurrentContext.WorkflowDefinitionId}";
+
+        if (!string.IsNullOrEmpty(SessionState.CurrentContext.WorkflowInstanceId))
+            return $"Instance: {SessionState.CurrentContext.WorkflowInstanceId}";
+
+        return "Context attached";
+    }
+
+    public void Dispose()
+    {
+        CancelStreaming();
+    }
+}
