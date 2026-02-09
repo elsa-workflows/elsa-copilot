@@ -23,6 +23,10 @@ public static class CopilotChatExtensions
         services.AddScoped<GetActivityCatalogTool>();
         services.AddScoped<GetWorkflowInstanceStateTool>();
         services.AddScoped<GetWorkflowInstanceErrorsTool>();
+        services.AddScoped<GetWorkflowDiagnosticsSnapshotTool>();
+
+        // Register diagnostic services (Phase 4)
+        services.AddScoped<WorkflowDiagnosticsService>();
 
         // Register mock chat client only if no IChatClient is already registered
         // This allows the host to register a real AI provider before calling AddCopilotChat()
